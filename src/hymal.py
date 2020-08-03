@@ -4,13 +4,12 @@ import re
 import sqlite3 as db
 
 table_name = 'hymnal'
-title_num_py = 'titnum.py'
-#_find_title = re.compile('\'.*\'')
-max_nhymal = 639
+title_chap_py = 'titchap.py'
+max_hymal = 639
 
 db_file = "newhymal.hdb"
 
-def create_title_to_num(db_file):
+def create_hyaml_py(db_file):
 	'''
 	Create a dictionary of (title, number) pair
 	
@@ -27,14 +26,14 @@ def create_title_to_num(db_file):
 	conn = db.connect(db_file)
 	cursor = conn.cursor()
 	
-	tn_file = open(title_num_py, "wt")
-	tn_file.write("title_num = dict()\n")
+	tn_file = open(title_chap_py, "wt")
+	tn_file.write("title_chap = dict()\n")
 	nhym = max_nhymal + 1
 	
 	for i in range(1, nhym):
 		sql = 'SELECT title from {} where id = {}'.format(table_name, i)
 		cur = cursor.execute(sql)
-		tn_file.write("title_num[\"{}\"] = {}\n".format(cur.fetchone()[0], i))
+		tn_file.write("title_chap[\"{}\"] = {}\n".format(cur.fetchone()[0], i))
 	tn_file.close()
 
 # usage	
@@ -44,8 +43,6 @@ def create_title_to_num(db_file):
 # <br> new line
 
 _find_nlyric = re.compile("\d")
-
-#remove_empty_string = lambda del m[i] for i in range(len(m)) if m[i] == ''
 
 def parse_hymal(hymal_str):
 	h1 = hymal_str.replace('<b>', '')
@@ -60,6 +57,8 @@ def parse_hymal(hymal_str):
 	for i in range(nl):
 		v = h5[i].split('\n')
 		del v[-1]
+		for j in range(len(v)): 
+			v[j] = v[j].strip()
 		hymal_list.append(v)
 		
 	return hymal_list
@@ -68,10 +67,9 @@ def get_hymal_by_chapter(num):
 	
 	conn = db.connect(db_file)
 	cursor = conn.cursor()
-	
 	sql = 'SELECT htext from {} where id = {}'.format(table_name, num)
 	cur = cursor.execute(sql)
-	return cur.fetchone()[0]
+	return parse_hymal(cur.fetchone()[0])
 
 def get_hymal_by_title(title):
 	
@@ -79,12 +77,8 @@ def get_hymal_by_title(title):
 	cursor = conn.cursor()
 	sql = 'SELECT htext from {} where title = {}'.format(table_name, title)
 	cur = cursor.execute(sql)
-	return cur.fetchone()[0]
+	return parse_hymal(cur.fetchone()[0])
 	
 def get_hymal_by_keyword(keyword):
 	return
 	
-
-
-
-
