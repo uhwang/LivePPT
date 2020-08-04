@@ -49,9 +49,12 @@ def parse_hymal(hymal_str):
 	h2 = h1.replace('</b>', '')
 	h3 = h2.replace('<br>', '\n')
 	h4 = h3.replace('\n\n', '\n')
+	#h2 = re.sub("[<b>][</b]", hymal_str, '')
+	#h3 = re.sub("[<br>]", h2, '\n')
+	#h4 = re.sub('\n\n', h3, '\n')
 	h5 = re.split('\d. ', h4)
 	if h5[0] == '': del h5[0]
-
+ 
 	hymal_list = []
 	nl = len(h5)
 	for i in range(nl):
@@ -60,7 +63,7 @@ def parse_hymal(hymal_str):
 		for j in range(len(v)): 
 			v[j] = v[j].strip()
 		hymal_list.append(v)
-		
+	
 	return hymal_list
 	
 def get_hymal_by_chapter(num):
