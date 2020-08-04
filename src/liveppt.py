@@ -363,7 +363,7 @@ class QLivePPT(QtGui.QWidget):
 			for l1 in l:
 				p = txt_f.add_paragraph()
 				p.text = l1
-				self.set_paragraph(p, PP_ALIGN.LEFT, 
+				self.set_paragraph(p, PP_ALIGN.CENTER, 
 			                   self.ppt_hymal.font_name, 
 							   self.ppt_hymal.font_size,
 							   self.ppt_hymal.font_col, 
