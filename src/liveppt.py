@@ -43,6 +43,7 @@ import icon_color_picker
 import icon_font_picker
 import icon_ppt_pptx
 import icon_ppt_image
+import icon_liveppt
 
 _slide_size_type = [
 	"[ 4:3],[10:7.5  ]",
@@ -71,7 +72,8 @@ _default_hymal_chap_font_size = 22.0
 _ppttab_text   = "PPT"
 _slidetab_text = "Slide"
 _hymaltab_text = "Hymal"
-_messagetab_text   = "Message"
+_txttoppt_text = "TxtPPT"
+_messagetab_text = "Message"
 
 _SAVE_FOLDER_SLIDE = 0
 _SAVE_FOLDER_HYMAL = 1
@@ -164,9 +166,11 @@ class QLivePPT(QtGui.QWidget):
 		self.slide_tab = QtGui.QWidget()
 		self.hymal_tab = QtGui.QWidget()
 		self.message_tab = QtGui.QWidget()
+		self.txttoppt_tab = QtGui.QWidget()
 		self.tabs.addTab(self.ppt_tab, _ppttab_text)
 		self.tabs.addTab(self.slide_tab, _slidetab_text)
 		self.tabs.addTab(self.hymal_tab, _hymaltab_text)
+		self.tabs.addTab(self.txttoppt_tab, _txttoppt_text)
 		self.tabs.addTab(self.message_tab, _messagetab_text)
 		
 		self.ppt_tab_UI()
@@ -178,9 +182,13 @@ class QLivePPT(QtGui.QWidget):
 		self.setLayout(self.form_layout)
 		
 		self.setWindowTitle("PPT")
-		#self.setWindowIcon(QtGui.QIcon(QtGui.QPixmap(icon_encoder.table)))
+		self.setWindowIcon(QtGui.QIcon(QtGui.QPixmap(icon_liveppt.table)))
 		self.show()
 
+		
+	def txttoppt_tab_UI(self):
+		return
+		
 	def clear_global_message(self):
 		self.global_message.clear()
 		

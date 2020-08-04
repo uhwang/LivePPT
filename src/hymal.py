@@ -49,10 +49,12 @@ def parse_hymal(hymal_str):
 	h2 = h1.replace('</b>', '')
 	h3 = h2.replace('<br>', '\n')
 	h4 = h3.replace('\n\n', '\n')
+	s1=re.sub(r"(<.*?>)(?!<)", '', h4)
+	s2=re.sub(r"\[.*?\]", '', s1)
 	#h2 = re.sub("[<b>][</b]", hymal_str, '')
 	#h3 = re.sub("[<br>]", h2, '\n')
 	#h4 = re.sub('\n\n', h3, '\n')
-	h5 = re.split('\d. ', h4)
+	h5 = re.split('\d. ', s2)
 	if h5[0] == '': del h5[0]
  
 	hymal_list = []
@@ -85,4 +87,4 @@ def get_hymal_by_title(title):
 def get_hymal_by_keyword(keyword):
 	return
 	
-#print(get_hymal_by_chapter(100))
+print(get_hymal_by_chapter(320))
