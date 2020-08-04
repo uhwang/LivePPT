@@ -353,9 +353,11 @@ class QLivePPT(QtGui.QWidget):
 									   self.ppt_hymal.hgt)
 			txt_f = txt_box.text_frame
 			self.set_textbox(txt_f, MSO_AUTO_SIZE.NONE, MSO_ANCHOR.MIDDLE, MSO_ANCHOR.MIDDLE)
-			p = txt_f.add_paragraph()
-			p.text = '\n'.join(l)
-			self.set_paragraph(p, PP_ALIGN.LEFT, 
+			
+			for l1 in l:
+				p = txt_f.add_paragraph()
+				p.text = l1
+				self.set_paragraph(p, PP_ALIGN.LEFT, 
 			                   self.ppt_hymal.font_name, 
 							   self.ppt_hymal.font_size,
 							   self.ppt_hymal.font_col, 
