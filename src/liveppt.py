@@ -60,13 +60,13 @@ _default_txt_wid = 5.51
 _default_txt_hgt = 0.4
 _default_slide_bk_col = (0,32,96)
 _default_font_col = (255,255,255)
-_default_font_size = 20 # point
+_default_font_size = 20.0 # point
 _default_font_name = "맑은고딕"
 _default_txt_nparagraph = 1
 _default_slide_size_index = 1
 _default_hymal_slide_size_index = 0
-_default_hymal_font_size = 44
-_default_hymal_chap_font_size = 22
+_default_hymal_font_size = 44.0
+_default_hymal_chap_font_size = 22.0
 
 _ppttab_text   = "PPT"
 _slidetab_text = "Slide"
@@ -93,6 +93,8 @@ class ppt_color:
 		self.r = r
 		self.g = g
 		self.b = b
+	def __str__(self):
+		return "(%3d,%3d,%3d)"%(self.r,self.g,self.b)
 		
 class ppt_textbox_info:
 	def __init__(self, sx=_default_txt_sx,
@@ -110,7 +112,12 @@ class ppt_textbox_info:
 		self.font_size = font_size
 		#self.nparagraph = _default_txt_nparagraph
 		#self.paragraph_wrap = False
-
+	def __str__(self):
+		return "Sx: %2.4f\nSy: %2.4f\nWid: %2.4f\n\
+		        Hgt: %2.4f\nFn: %s\nFc: %s\nFz: %2.4f"%(\
+				self.sx, self.sy, self.wid, self.hgt, 
+				self.font_name, str(self.font_col), self.font_size)
+		
 class ppt_slide_info:
 	def __init__(self, w=None,h=None):
 		if not w and not h:
@@ -520,8 +527,7 @@ class QLivePPT(QtGui.QWidget):
 		
 	def apply_current_slide_value(self):
 		r,g,b = get_rgb(self.background_col.text(), '|')
-		print(r,g,b)
-		self.ppt_slide.background_col = ppt_color(r,g,b)
+		self.ppt_slide.slide_bk_col = ppt_color(r,g,b)
 		
 		if self.custom_slide_size.isChecked():
 			self.ppt_slide.wid = float(self.custom_slide_wid.text())
@@ -534,7 +540,7 @@ class QLivePPT(QtGui.QWidget):
 		self.ppt_textbox.sx  = float(self.text_sx .text())
 		self.ppt_textbox.sy  = float(self.text_sy .text())
 		self.ppt_textbox.wid = float(self.text_wid.text())
-		self.ppt_textbox.hgt = float(self.text_wid.text())
+		self.ppt_textbox.hgt = float(self.text_hgt.text())
 
 		self.ppt_textbox.font_name = self.textbox_font_name.text()
 		r,g,b = get_rgb(self.textbox_font_col.text(), '|')
