@@ -123,12 +123,15 @@ class ppt_slide_info:
 		if not w and not h:
 			w, h = get_slide_size(_slide_size_type[_default_slide_size_index])
 		c = _default_slide_bk_col
-		self.slide_bk_col = ppt_color(c[0], c[1], c[2])
-		self.slide_wid = w
-		self.slide_hgt = h
+		self.back_col = ppt_color(c[0], c[1], c[2])
+		self.wid = w
+		self.hgt = h
 		self.skip_image = True
-		self.slide_size_index = _default_slide_size_index
+		self.size_index = _default_slide_size_index
 		self.deep_copy = True
+	
+	def __str__(self):
+		return ""
 
 # use max size: sx=0, sy=0, wid=max wid, hgt=max hgt
 class ppt_hymal_info(ppt_slide_info, ppt_textbox_info):
@@ -184,11 +187,14 @@ class QLivePPT(QtGui.QWidget):
 	def message_tab_UI(self):
 		layout = QtGui.QVBoxLayout()
 		
-		clear = QtGui.QPushButton('Clear', self)
-		clear.clicked.connect(self.clear_global_message)
+		clear_btn = QtGui.QPushButton('Clear', self)
+		clear_btn.clicked.connect(self.clear_global_message)
 		
 		self.global_message = QtGui.QPlainTextEdit()
-		layout.addWidget(clear)
+		policy = self.sizePolicy()
+		policy.setVerticalStretch(1)
+		self.global_message.setSizePolicy(policy)
+		layout.addWidget(clear_btn)
 		layout.addWidget(self.global_message)
 		self.message_tab.setLayout(layout)
 		
@@ -232,11 +238,11 @@ class QLivePPT(QtGui.QWidget):
 		self.connect(self.hymal_font_col_picker, QtCore.SIGNAL('clicked()'), self.pick_hymal_font_color)
 		self.hymal_info_table.setCellWidget(6,2, self.hymal_font_col_picker)
 
-		self.hymal_bk_col_picker = QtGui.QPushButton('', self)
-		self.hymal_bk_col_picker.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_color_picker.table)))
-		self.hymal_bk_col_picker.setIconSize(QtCore.QSize(16,16))
-		self.connect(self.hymal_bk_col_picker, QtCore.SIGNAL('clicked()'), self.pick_hymal_bk_color)
-		self.hymal_info_table.setCellWidget(8,2, self.hymal_bk_col_picker)
+		self.hymal_back_col_picker = QtGui.QPushButton('', self)
+		self.hymal_back_col_picker.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_color_picker.table)))
+		self.hymal_back_col_picker.setIconSize(QtCore.QSize(16,16))
+		self.connect(self.hymal_back_col_picker, QtCore.SIGNAL('clicked()'), self.pick_hymal_bk_color)
+		self.hymal_info_table.setCellWidget(8,2, self.hymal_back_col_picker)
 		
 		self.hymal_info_table.item(0,1).setText("%d"%self.ppt_hymal.chap)
 		self.hymal_info_table.item(1,1).setText("%f"%float(self.ppt_hymal.sx ))
@@ -248,7 +254,7 @@ class QLivePPT(QtGui.QWidget):
 		c1="%03d,%03d,%03d"%(c.r,c.g,c.b)
 		self.hymal_info_table.item(6,1).setText(c1)
 		self.hymal_info_table.item(7,1).setText("%d"%self.ppt_hymal.font_size)
-		c = self.ppt_hymal.slide_bk_col
+		c = self.ppt_hymal.back_col
 		c1="%03d,%03d,%03d"%(c.r,c.g,c.b)
 		self.hymal_info_table.item(8,1).setText(c1)
 		self.hymal_info_table.resizeRowsToContents()			
@@ -331,7 +337,7 @@ class QLivePPT(QtGui.QWidget):
 		self.ppt_hymal.hgt = float(self.hymal_info_table.item(4,1).text())
 		self.ppt_hymal.font_name = self.hymal_info_table.item(5,1).text()
 		
-		self.ppt_hymal.slide_bk_col = ppt_color(int(bk_col.group(1)), 
+		self.ppt_hymal.back_col = ppt_color(int(bk_col.group(1)), 
 		                                        int(bk_col.group(2)), 
 												int(bk_col.group(3)))
 		self.ppt_hymal.font_size = float(self.hymal_info_table.item(7,1).text())
@@ -345,7 +351,7 @@ class QLivePPT(QtGui.QWidget):
 		blank_slide_layout = dest_ppt.slide_layouts[6]
 		
 		for l in lyric:
-			dest_slide = self.add_empty_slide(dest_ppt, blank_slide_layout, self.ppt_hymal.slide_bk_col)
+			dest_slide = self.add_empty_slide(dest_ppt, blank_slide_layout, self.ppt_hymal.back_col)
 			txt_box = self.add_textbox(dest_slide, 
 			                           self.ppt_hymal.sx,
 									   self.ppt_hymal.sy,
@@ -374,21 +380,21 @@ class QLivePPT(QtGui.QWidget):
 
 		background_layout  = QtGui.QHBoxLayout()
 		background_layout.addWidget(QtGui.QLabel('Background(RGB)')) 
-		self.background_col = QtGui.QLineEdit()
-		self.background_col.setInputMask('999|999|999;-')
+		self.slide_back_col = QtGui.QLineEdit()
+		self.slide_back_col.setInputMask('999|999|999;-')
 		font = QtGui.QFont("Courier",11,True)
 		fm = QtGui.QFontMetrics(font)
-		self.background_col.setFixedSize(fm.width("888888888888"), fm.height())
-		self.background_col.setFont(font)
-		col = self.ppt_slide.slide_bk_col
-		self.background_col.setText("%03d|%03d|%03d"%(col.r, col.g, col.b))
+		self.slide_back_col.setFixedSize(fm.width("888888888888"), fm.height())
+		self.slide_back_col.setFont(font)
+		col = self.ppt_slide.back_col
+		self.slide_back_col.setText("%03d|%03d|%03d"%(col.r, col.g, col.b))
 		
-		self.background_col_picker = QtGui.QPushButton('', self)
-		self.background_col_picker.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_color_picker.table)))
-		self.background_col_picker.setIconSize(QtCore.QSize(16,16))
-		self.connect(self.background_col_picker, QtCore.SIGNAL('clicked()'), self.pick_bk_color)
-		background_layout.addWidget(self.background_col)
-		background_layout.addWidget(self.background_col_picker)
+		self.back_col_picker = QtGui.QPushButton('', self)
+		self.back_col_picker.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_color_picker.table)))
+		self.back_col_picker.setIconSize(QtCore.QSize(16,16))
+		self.connect(self.back_col_picker, QtCore.SIGNAL('clicked()'), self.pick_bk_color)
+		background_layout.addWidget(self.slide_back_col)
+		background_layout.addWidget(self.back_col_picker)
 		
 		slide_layout1 = QtGui.QHBoxLayout()
 		slide_layout1.addWidget(QtGui.QLabel("Custom Slide Size"))
@@ -400,7 +406,7 @@ class QLivePPT(QtGui.QWidget):
 		slide_layout2 = QtGui.QHBoxLayout()
 		self.choose_slide_size = QtGui.QComboBox(self)
 		self.choose_slide_size.addItems(_slide_size_type)
-		self.choose_slide_size.setCurrentIndex(self.ppt_slide.slide_size_index)
+		self.choose_slide_size.setCurrentIndex(self.ppt_slide.size_index)
 		self.choose_slide_size.currentIndexChanged.connect(self.set_custom_slide_size)
 
 		self.custom_slide_wid = QtGui.QLineEdit()
@@ -409,8 +415,8 @@ class QLivePPT(QtGui.QWidget):
 		self.custom_slide_hgt.setSizePolicy(QtGui.QSizePolicy.Ignored, QtGui.QSizePolicy.Preferred)
 		self.custom_slide_wid.setEnabled(False)
 		self.custom_slide_hgt.setEnabled(False)
-		self.custom_slide_wid.setText("%f"%self.ppt_slide.slide_wid)
-		self.custom_slide_hgt.setText("%f"%self.ppt_slide.slide_hgt)
+		self.custom_slide_wid.setText("%f"%self.ppt_slide.wid)
+		self.custom_slide_hgt.setText("%f"%self.ppt_slide.hgt)
 		
 		slide_layout2.addWidget(self.choose_slide_size)
 		slide_layout2.addWidget(self.custom_slide_wid)
@@ -507,13 +513,27 @@ class QLivePPT(QtGui.QWidget):
 			self.ppt_slide.deep_copy = False
 			
 	def set_init_slide_value(self):
-		c = _default_slide_bk_col
-		self.background_col.setText("%03d|%03d|%03d"%(c[0], c[1], c[2]))
+		c1 = _default_slide_bk_col
+		c2 = _default_font_col
+		w, h = get_slide_size(_slide_size_type[_default_slide_size_index])
+		self.ppt_slide.back_col = ppt_color(c1[0],c1[1],c1[2])
+		self.ppt_slide.size_index = _default_slide_size_index
+		self.ppt_slide.wid = w
+		self.ppt_slide.hgt = h
+		self.ppt_textbox.sx  = _default_txt_sx
+		self.ppt_textbox.sy  = _default_txt_sy
+		self.ppt_textbox.wid = _default_txt_wid
+		self.ppt_textbox.hgt = _default_txt_hgt
+		self.ppt_textbox.font_name = _default_font_name
+		self.ppt_textbox.font_col = ppt_color(c2[0], c2[1], c2[2])
+		self.ppt_textbox.font_size = _default_font_size
+		self.ppt_textbox.font_bold = True
+		
+		self.slide_back_col.setText("%03d|%03d|%03d"%(c1[0], c1[1], c1[2]))
 		self.custom_slide_size.setChecked(False)
 		self.choose_slide_size.setCurrentIndex(_default_slide_size_index)
 		self.custom_slide_wid.setEnabled(False)
 		self.custom_slide_hgt.setEnabled(False)
-		w, h = get_slide_size(_slide_size_type[_default_slide_size_index])
 		self.custom_slide_wid.setText("%f"%w)
 		self.custom_slide_hgt.setText("%f"%h)
 		self.custom_slide_size.setChecked(False)
@@ -522,14 +542,13 @@ class QLivePPT(QtGui.QWidget):
 		self.text_wid.setText("%f"%_default_txt_wid)
 		self.text_wid.setText("%f"%_default_txt_hgt)
 		self.textbox_font_name.setText(_default_font_name)
-		c = _default_font_col
-		self.textbox_font_col.setText("%03d|%03d|%03d"%(c[0], c[1], c[2]))
+		self.textbox_font_col.setText("%03d|%03d|%03d"%(c2[0], c2[1], c2[2]))
 		self.textbox_font_size.setText("%f"%_default_font_size)
 		self.textbox_font_bold.setChecked(True)
 		
 	def apply_current_slide_value(self):
-		r,g,b = get_rgb(self.background_col.text(), '|')
-		self.ppt_slide.slide_bk_col = ppt_color(r,g,b)
+		r,g,b = get_rgb(self.slide_back_col.text(), '|')
+		self.ppt_slide.back_col = ppt_color(r,g,b)
 		
 		if self.custom_slide_size.isChecked():
 			self.ppt_slide.wid = float(self.custom_slide_wid.text())
@@ -557,8 +576,8 @@ class QLivePPT(QtGui.QWidget):
 		col = QtGui.QColorDialog.getColor()
 		if col.isValid():
 			r,g,b,a = col.getRgb()
-			self.ppt_slide.background_col = ppt_color(r,g,b)
-			self.background_col.setText("%03d|%03d|%03d"%(r, g, b))
+			self.ppt_slide.slide_back_col = ppt_color(r,g,b)
+			self.slide_back_col.setText("%03d|%03d|%03d"%(r, g, b))
 
 	def pick_font_color(self):
 		col = QtGui.QColorDialog.getColor()
@@ -591,16 +610,16 @@ class QLivePPT(QtGui.QWidget):
 	def ppt_tab_UI(self):
 		layout = QtGui.QFormLayout()
 		open_layout  = QtGui.QHBoxLayout()
-		self.add_button = QtGui.QPushButton('Add', self)
-		self.add_button.clicked.connect(self.add_ppt_file)
-		self.add_button.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_file_add.table)))
-		self.add_button.setIconSize(QtCore.QSize(16,16))
-		self.open_button = QtGui.QPushButton('Open', self)
-		self.open_button.clicked.connect(self.open_ppt_file)
-		self.open_button.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_folder_open.table)))
-		self.open_button.setIconSize(QtCore.QSize(16,16))
-		open_layout.addWidget(self.open_button)
-		open_layout.addWidget(self.add_button)
+		self.add_btn = QtGui.QPushButton('Add', self)
+		self.add_btn.clicked.connect(self.add_ppt_file)
+		self.add_btn.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_file_add.table)))
+		self.add_btn.setIconSize(QtCore.QSize(16,16))
+		self.open_btn = QtGui.QPushButton('Open', self)
+		self.open_btn.clicked.connect(self.open_ppt_file)
+		self.open_btn.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_folder_open.table)))
+		self.open_btn.setIconSize(QtCore.QSize(16,16))
+		open_layout.addWidget(self.open_btn)
+		open_layout.addWidget(self.add_btn)
 
 		self.ppt_list_table = QtGui.QTableWidget()
 		self.ppt_list_table.setColumnCount(4)
@@ -613,46 +632,45 @@ class QLivePPT(QtGui.QWidget):
 		header.setResizeMode(1, QtGui.QHeaderView.ResizeToContents)
 		header.setResizeMode(3, QtGui.QHeaderView.ResizeToContents)
 		
-		self.move_up = QtGui.QPushButton('', self)
-		self.move_up.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_arrow_up.table)))
-		self.move_up.setIconSize(QtCore.QSize(16,16))
-		self.connect(self.move_up, QtCore.SIGNAL('clicked()'), self.move_item_up)
+		self.move_up_btn = QtGui.QPushButton('', self)
+		self.move_up_btn.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_arrow_up.table)))
+		self.move_up_btn.setIconSize(QtCore.QSize(16,16))
+		self.connect(self.move_up_btn, QtCore.SIGNAL('clicked()'), self.move_item_up)
 		 
-		self.move_down = QtGui.QPushButton('', self)
-		self.move_down.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_arrow_down.table)))
-		self.move_down.setIconSize(QtCore.QSize(16,16))
-		self.connect(self.move_down, QtCore.SIGNAL('clicked()'), self.move_itme_down)
+		self.move_down_btn = QtGui.QPushButton('', self)
+		self.move_down_btn.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_arrow_down.table)))
+		self.move_down_btn.setIconSize(QtCore.QSize(16,16))
+		self.connect(self.move_down_btn, QtCore.SIGNAL('clicked()'), self.move_itme_down)
 		
-		self.sort_asc = QtGui.QPushButton('', self)
-		self.sort_asc.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_table_sort_asc.table)))
-		self.sort_asc.setIconSize(QtCore.QSize(16,16))
+		self.sort_asnd_btn = QtGui.QPushButton('', self)
+		self.sort_asnd_btn.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_table_sort_asc.table)))
+		self.sort_asnd_btn.setIconSize(QtCore.QSize(16,16))
 
-		self.sort_desc = QtGui.QPushButton('', self)
-		self.sort_desc.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_table_sort_desc.table)))
-		self.sort_desc.setIconSize(QtCore.QSize(16,16))
+		self.sort_dsnd_btn = QtGui.QPushButton('', self)
+		self.sort_dsnd_btn.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_table_sort_desc.table)))
+		self.sort_dsnd_btn.setIconSize(QtCore.QSize(16,16))
 
-		self.delete_video = QtGui.QPushButton('', self)
-		self.delete_video.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_delete.table)))
-		self.delete_video.setIconSize(QtCore.QSize(16,16))
-		self.connect(self.delete_video, QtCore.SIGNAL('clicked()'), self.delete_item)
+		self.delete_btn = QtGui.QPushButton('', self)
+		self.delete_btn.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_delete.table)))
+		self.delete_btn.setIconSize(QtCore.QSize(16,16))
+		self.connect(self.delete_btn, QtCore.SIGNAL('clicked()'), self.delete_item)
 		
-		self.delete_all = QtGui.QPushButton('', self)
-		self.delete_all.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_trash.table)))
-		self.delete_all.setIconSize(QtCore.QSize(16,16))
+		self.delete_all_btn = QtGui.QPushButton('', self)
+		self.delete_all_btn.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_trash.table)))
+		self.delete_all_btn.setIconSize(QtCore.QSize(16,16))
+		self.connect(self.delete_all_btn, QtCore.SIGNAL('clicked()'), self.delete_all_item)
 		
 		self.play = QtGui.QPushButton('', self)
 		self.play.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_play.table)))
 		self.play.setIconSize(QtCore.QSize(16,16))
 		
-		self.connect(self.delete_all, QtCore.SIGNAL('clicked()'), self.delete_all_item)
-		
 		btn_layout = QtGui.QHBoxLayout()
-		btn_layout.addWidget(self.move_up)
-		btn_layout.addWidget(self.move_down)
-		btn_layout.addWidget(self.sort_asc)
-		btn_layout.addWidget(self.sort_desc)
-		btn_layout.addWidget(self.delete_video)
-		btn_layout.addWidget(self.delete_all)
+		btn_layout.addWidget(self.move_up_btn)
+		btn_layout.addWidget(self.move_down_btn)
+		btn_layout.addWidget(self.sort_asnd_btn)
+		btn_layout.addWidget(self.sort_dsnd_btn)
+		btn_layout.addWidget(self.delete_btn)
+		btn_layout.addWidget(self.delete_all_btn)
 		btn_layout.addWidget(self.play)
 		
 		publish_layout = QtGui.QGridLayout()
@@ -716,8 +734,12 @@ class QLivePPT(QtGui.QWidget):
 		nppt = self.ppt_list_table.rowCount()
 		if nppt is 0: return
 
-		Application = win32com.client.Dispatch("PowerPoint.Application")
-		Application.Visible = True
+		try:
+			Application = win32com.client.Dispatch("PowerPoint.Application")
+			Application.Visible = True
+		except Exception as e:
+			QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', "%s"%str(e), QtGui.QMessageBox.Yes)
+			return
 
 		for npr in range(nppt):
 			path = self.ppt_list_table.item(npr, 2).text()
@@ -734,21 +756,38 @@ class QLivePPT(QtGui.QWidget):
 				s.Export(os.path.join(img_folder,"%s%03d.jpg"%(ff[0],i)), "JPG")
 		Application.Quit()
 		
+		QtGui.QMessageBox.question(QtGui.QWidget(), 'completed!', "%s"%img_folder, QtGui.QMessageBox.Yes)
+		
 	def convert_ppt_to_pptx(self):
 		nppt = self.ppt_list_table.rowCount()
 		if nppt is 0: return
 
-		Application = win32com.client.Dispatch("PowerPoint.Application")
-		Application.Visible = True
+		try:
+			Application = win32com.client.Dispatch("PowerPoint.Application")
+			Application.Visible = True
+		except Exception as e:
+			QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', "%s"%str(e), QtGui.QMessageBox.Yes)
+			return
+			
 		for npr in range(nppt):
 			path = self.ppt_list_table.item(npr, 2).text()
 			sorc = os.path.join(path, self.ppt_list_table.item(npr,0).text())
 			Presentation = Application.Presentations.Open(sorc)
 			fname = os.path.splitext(self.ppt_list_table.item(npr,0).text())
 			dest = os.path.join(path, "%s.pptx"%(fname[0]))
-			Presentation.Saveas(dest)
+			try:
+				Presentation.Saveas(dest)
+			except Exception as e:
+				res = QtGui.QMessageBox.question(QtGui.QWidget(), 'Continue?', "Error:%s"%str(e),\
+				QtGui.QMessageBox.Yes|QtGui.QMessageBox.Cancel)
+				if res is QtGui.QMessageBox.Cancel:
+					Presentation.Close()
+					Application.Quit()
+					return
 			Presentation.Close()
 		Application.Quit()
+		
+		QtGui.QMessageBox.question(QtGui.QWidget(), 'completed!', "%s"%dest, QtGui.QMessageBox.Yes)
 		
 	def set_common_var(self):
 		self.ppt_slide = ppt_slide_info()
@@ -784,7 +823,7 @@ class QLivePPT(QtGui.QWidget):
 			self.hymal_save_path.setText(self.save_folder)
 
 	def open_ppt_file(self):
-		title = self.open_button.text()
+		title = self.open_btn.text()
 		self.ppt_filenames = QtGui.QFileDialog.getOpenFileNames(self, title, directory=self.src_directory_path.text(), filter="PPTX (*.pptx);;PPT (*.ppt);;All files (*.*)")
 		nppt = len(self.ppt_filenames)
 
@@ -813,7 +852,7 @@ class QLivePPT(QtGui.QWidget):
 				self.src_directory_path.setText(fpath)
 		
 	def add_ppt_file(self):
-		title = self.add_button.text()
+		title = self.add_btn.text()
 		files = QtGui.QFileDialog.getOpenFileNames(self, title, directory=self.src_directory_path.text(), filter="PPTX (*.pptx);;PPT (*.ppt);;All files (*.*)")
 		nppt = len(files)
 		format_error = False
@@ -888,7 +927,7 @@ class QLivePPT(QtGui.QWidget):
 		dest_slide = dest_ppt.slides.add_slide(layout)
 		bk = dest_slide.background
 		bk.fill.solid()
-		#bc = self.ppt_slide.slide_bk_col
+		#bc = self.ppt_slide.back_col
 		bk.fill.fore_color.rgb = pptx.dml.color.RGBColor(bk_col.r, bk_col.g, bk_col.b)
 		return dest_slide
 
@@ -916,11 +955,11 @@ class QLivePPT(QtGui.QWidget):
 			save_file = "%s.pptx"%(self.publish_title.currentText())
 			
 		dest_ppt = pptx.Presentation()
-		dest_ppt.slide_width = pptx.util.Inches(self.ppt_slide.slide_wid)
-		dest_ppt.slide_height = pptx.util.Inches(self.ppt_slide.slide_hgt)
+		dest_ppt.slide_width = pptx.util.Inches(self.ppt_slide.wid)
+		dest_ppt.slide_height = pptx.util.Inches(self.ppt_slide.hgt)
 		blank_slide_layout = dest_ppt.slide_layouts[6]
 
-		#self.add_empty_slide(dest_ppt, blank_slide_layout, self.ppt_slide.slide_bk_col)
+		#self.add_empty_slide(dest_ppt, blank_slide_layout, self.ppt_slide.back_col)
 		for npr in range(nppt):
 			npf = os.path.join(self.ppt_list_table.item(npr, 2).text(), self.ppt_list_table.item(npr,0).text())
 			npg = int(self.ppt_list_table.item(npr, 3).text())
@@ -928,7 +967,7 @@ class QLivePPT(QtGui.QWidget):
 			for slide in src.slides:
 				in_text = self.slide_has_text(slide)
 				if in_text=='' and self.ppt_slide.deep_copy:
-					self.add_empty_slide(dest_ppt, blank_slide_layout, self.ppt_slide.slide_bk_col)
+					self.add_empty_slide(dest_ppt, blank_slide_layout, self.ppt_slide.back_col)
 					continue
 					
 				for shape in slide.shapes:
@@ -954,7 +993,7 @@ class QLivePPT(QtGui.QWidget):
 					np_list = len(p_list)
 					for j in range(0, np_list, npg):
 						if npg > 1 and (np_list-j) < npg: break
-						dest_slide = self.add_empty_slide(dest_ppt, blank_slide_layout, self.ppt_slide.slide_bk_col)
+						dest_slide = self.add_empty_slide(dest_ppt, blank_slide_layout, self.ppt_slide.back_col)
 						txt_box = self.add_textbox(dest_slide,
 						                           self.ppt_textbox.sx,
 												   self.ppt_textbox.sy,
@@ -999,13 +1038,16 @@ class QLivePPT(QtGui.QWidget):
 								self.ppt_textbox.font_size,
 								self.ppt_textbox.font_col,
 								self.ppt_textbox.font_bold)
-			self.add_empty_slide(dest_ppt, blank_slide_layout, self.ppt_slide.slide_bk_col)
+			self.add_empty_slide(dest_ppt, blank_slide_layout, self.ppt_slide.back_col)
 		try:
-			dest_ppt.save(os.path.join(self.save_directory_path.text(),save_file))
+			sfn = os.path.join(self.save_directory_path.text(),save_file)
+			dest_ppt.save(sfn)
 		except Exception as e:
 			QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', "{}".format(str(e)), QtGui.QMessageBox.Yes)
 			del dest_ppt
 			return
+			
+		QtGui.QMessageBox.question(QtGui.QWidget(), 'completed!', "{}".format(sfn), QtGui.QMessageBox.Yes)
 
 	def add_textbox(self, ds, sx, sy, wid, hgt):
 		return ds.shapes.add_textbox(\
