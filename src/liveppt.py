@@ -80,7 +80,12 @@ _SAVE_FOLDER_HYMAL = 1
 
 _worship_type = ["주일예배", "수요예배", "새벽기도", 
                  "부흥회"  , "특별예베", "직접입력"]
-
+def RGB(red, green, blue):
+    assert 0 <= red <=255    
+    assert 0 <= green <=255
+    assert 0 <= blue <=255
+    return red + (green << 8) + (blue << 16)
+	
 def get_rgb(c, sp=':'):
 	c1 = c.split(sp)
 	return int(c1[0]),int(c1[1]),int(c1[2])
@@ -112,6 +117,7 @@ class ppt_textbox_info:
 		self.font_col  = ppt_color()
 		self.font_bold = True
 		self.font_size = font_size
+		self.word_wrap = False
 		#self.nparagraph = _default_txt_nparagraph
 		#self.paragraph_wrap = False
 	def __str__(self):
@@ -306,29 +312,32 @@ class QLivePPT(QtGui.QWidget):
 		
 	def pick_hymal_font(self):
 		font, valid = QtGui.QFontDialog.getFont()
-		if valid:
+		if valid: 
 			self.ppt_hymal.font_name = font.family()
 			self.hymal_info_table.item(5,1).setText(font.family())	
-	
+        
 	def create_hymal_ppt(self):
 		import hymal
 		import titnum
 		
 		chap = int(self.hymal_info_table.item(0,1).text())
 		if chap < 1 or chap > hymal.max_hymal:
-			QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', "Invalid hymal chapter: {}".format(chap), QtGui.QMessageBox.Yes)
+			QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', 
+			"Invalid hymal chapter: {}".format(chap), QtGui.QMessageBox.Yes)
 			return
 			
 		col_str = self.hymal_info_table.item(8,1).text()
 		bk_col = _find_rgb.search(col_str)
 		if not bk_col:
-			QtGui.QMessageBox.question(QtGui.QWidget(), 'Invalid Back color', "Comma separated {}".format(col_str), QtGui.QMessageBox.Yes)
+			QtGui.QMessageBox.question(QtGui.QWidget(), 'Invalid Back color', 
+			"Comma separated {}".format(col_str), QtGui.QMessageBox.Yes)
 			return
 
 		col_str = self.hymal_info_table.item(6,1).text()
 		ft_col = _find_rgb.search(col_str)
 		if not ft_col:
-			QtGui.QMessageBox.question(QtGui.QWidget(), 'Invalid Font color', "Comma separated {}".format(col_str), QtGui.QMessageBox.Yes)
+			QtGui.QMessageBox.question(QtGui.QWidget(), 'Invalid Font color', 
+			"Comma separated {}".format(col_str), QtGui.QMessageBox.Yes)
 			return
 			
 		lyric = hymal.get_hymal_by_chapter(chap)
@@ -359,7 +368,8 @@ class QLivePPT(QtGui.QWidget):
 		blank_slide_layout = dest_ppt.slide_layouts[6]
 		
 		for l in lyric:
-			dest_slide = self.add_empty_slide(dest_ppt, blank_slide_layout, self.ppt_hymal.back_col)
+			dest_slide = self.add_empty_slide(dest_ppt, blank_slide_layout, 
+			self.ppt_hymal.back_col)
 			txt_box = self.add_textbox(dest_slide, 
 			                           self.ppt_hymal.sx,
 									   self.ppt_hymal.sy,
@@ -369,6 +379,7 @@ class QLivePPT(QtGui.QWidget):
 			self.set_textbox(txt_f, MSO_AUTO_SIZE.NONE, MSO_ANCHOR.MIDDLE, MSO_ANCHOR.MIDDLE)
 			
 			for l1 in l:
+				print(l1)
 				p = txt_f.add_paragraph()
 				p.text = l1
 				self.set_paragraph(p, PP_ALIGN.CENTER, 
@@ -379,7 +390,8 @@ class QLivePPT(QtGui.QWidget):
 		try:
 			dest_ppt.save(save_file)
 		except Exception as e:
-			QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', "{}".format(str(e)), QtGui.QMessageBox.Yes)
+			QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', "{}".format(str(e)), 
+			QtGui.QMessageBox.Yes)
 			del dest_ppt
 			return
 			
@@ -495,6 +507,12 @@ class QLivePPT(QtGui.QWidget):
 		self.deep_copy.stateChanged.connect(self.deep_copy_state_changed)
 		font_layout.addWidget(self.deep_copy,3, 1)
 		
+		font_layout.addWidget(QtGui.QLabel("Word wrap"),4, 0)
+		self.word_wrap = QtGui.QCheckBox()
+		self.word_wrap.setChecked(self.ppt_textbox.word_wrap)
+		self.word_wrap.stateChanged.connect(self.word_wrap_state_changed)
+		font_layout.addWidget(self.word_wrap,4, 1)
+		
 		menu_layout = QtGui.QHBoxLayout()
 		self.slide_menu_init_btn = QtGui.QPushButton('Init')
 		self.slide_menu_apply_btn = QtGui.QPushButton('Apply')
@@ -513,6 +531,12 @@ class QLivePPT(QtGui.QWidget):
 		layout.addRow(font_layout)
 		layout.addRow(menu_layout)
 		self.slide_tab.setLayout(layout)
+	
+	def word_wrap_state_changed(self):
+		if self.deep_copy.isChecked():
+			self.ppt_textbox.word_wrap = True
+		else:
+			self.ppt_textbox.word_wrap = False
 	
 	def deep_copy_state_changed(self):
 		if self.deep_copy.isChecked():
@@ -576,6 +600,7 @@ class QLivePPT(QtGui.QWidget):
 		self.ppt_textbox.font_col = ppt_color(r,g,b)
 		self.ppt_textbox.font_size = float(self.textbox_font_size.text())
 		self.ppt_textbox.font_bold = self.textbox_font_bold.isChecked()
+		self.ppt_textbox.word_wrap = self.word_wrap.isChecked()
 
 	def save_current_slide_value(self):
 		return
@@ -744,9 +769,10 @@ class QLivePPT(QtGui.QWidget):
 
 		try:
 			Application = win32com.client.Dispatch("PowerPoint.Application")
-			Application.Visible = True
+			#Application.Visible = True
 		except Exception as e:
-			QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', "%s"%str(e), QtGui.QMessageBox.Yes)
+			QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', "%s"%str(e), 
+			QtGui.QMessageBox.Yes)
 			return
 
 		for npr in range(nppt):
@@ -761,10 +787,14 @@ class QLivePPT(QtGui.QWidget):
 
 			Presentation = Application.Presentations.Open(sorc)
 			for i, s in enumerate(Presentation.Slides):
+				#for j in s.Shapes:
+				#	j.Textframe.TextRange2.Font.Line.Visible = True
+				#	j.Textframe.TextRange2.Line.ForeColor.RGB = RGB(255,0,0)
 				s.Export(os.path.join(img_folder,"%s%03d.jpg"%(ff[0],i)), "JPG")
 		Application.Quit()
 		
-		QtGui.QMessageBox.question(QtGui.QWidget(), 'completed!', "%s"%img_folder, QtGui.QMessageBox.Yes)
+		QtGui.QMessageBox.question(QtGui.QWidget(), 'completed!', "%s"%img_folder, 
+		QtGui.QMessageBox.Yes)
 		
 	def convert_ppt_to_pptx(self):
 		nppt = self.ppt_list_table.rowCount()
@@ -772,7 +802,7 @@ class QLivePPT(QtGui.QWidget):
 
 		try:
 			Application = win32com.client.Dispatch("PowerPoint.Application")
-			Application.Visible = True
+			#Application.Visible = True
 		except Exception as e:
 			QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', "%s"%str(e), QtGui.QMessageBox.Yes)
 			return
@@ -1013,20 +1043,30 @@ class QLivePPT(QtGui.QWidget):
 						k_list = []
 						for k in range(npg):
 							k_list.append(p_list[j+k])
-						
-						p = txt_f.add_paragraph()
-						p.text = ' '.join(k_list)
-						self.set_paragraph(p,
-						        PP_ALIGN.CENTER,
-								self.ppt_textbox.font_name,
-								self.ppt_textbox.font_size,
-								self.ppt_textbox.font_col,
-								self.ppt_textbox.font_bold)
+						if self.ppt_textbox.word_wrap:
+							for w in k_list:
+								p = txt_f.add_paragraph()
+								p.text = w
+								self.set_paragraph(p, 
+									PP_ALIGN.CENTER,
+									self.ppt_textbox.font_name,
+									self.ppt_textbox.font_size,
+									self.ppt_textbox.font_col,
+									self.ppt_textbox.font_bold)
+						else:	
+							p = txt_f.add_paragraph()
+							p.text = ' '.join(k_list)
+							self.set_paragraph(p,
+									PP_ALIGN.CENTER,
+									self.ppt_textbox.font_name,
+									self.ppt_textbox.font_size,
+									self.ppt_textbox.font_col,
+									self.ppt_textbox.font_bold)
 
 					if npg == 1: continue
 					left_over = np_list%npg
 					if left_over:
-						dest_slide = self.add_empty_slide(dest_ppt, blank_slide_layout)
+						dest_slide = self.add_empty_slide(dest_ppt, blank_slide_layout, self.ppt_slide.back_col)
 						txt_box = self.add_textbox(dest_slide,
 						                           self.ppt_textbox.sx,
 												   self.ppt_textbox.sy,
@@ -1038,14 +1078,26 @@ class QLivePPT(QtGui.QWidget):
 						l = j-npg
 						for k in range(l):
 							k_list.append(p_list[l+k])
-						p = txt_f.add_paragraph()
-						p.text = ' '.join(k_list)
-						self.set_paragraph(p, 
-								PP_ALIGN.CENTER,
-								self.ppt_textbox.font_name,
-								self.ppt_textbox.font_size,
-								self.ppt_textbox.font_col,
-								self.ppt_textbox.font_bold)
+							
+						if self.ppt_textbox.word_wrap:
+							for w in k_list:
+								p = txt_f.add_paragraph()
+								p.text = w
+								self.set_paragraph(p, 
+									PP_ALIGN.CENTER,
+									self.ppt_textbox.font_name,
+									self.ppt_textbox.font_size,
+									self.ppt_textbox.font_col,
+									self.ppt_textbox.font_bold)
+						else:
+							p = txt_f.add_paragraph()
+							p.text = ' '.join(k_list)
+							self.set_paragraph(p, 
+									PP_ALIGN.CENTER,
+									self.ppt_textbox.font_name,
+									self.ppt_textbox.font_size,
+									self.ppt_textbox.font_col,
+									self.ppt_textbox.font_bold)
 			self.add_empty_slide(dest_ppt, blank_slide_layout, self.ppt_slide.back_col)
 		try:
 			sfn = os.path.join(self.save_directory_path.text(),save_file)
