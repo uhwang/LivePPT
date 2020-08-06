@@ -24,9 +24,11 @@ import os
 import datetime
 import pptx
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR, MSO_AUTO_SIZE
+from pptx.enum.dml import MSO_LINE
 import sys
 from PyQt4 import QtCore, QtGui, Qt
 import win32com.client
+import msoLine
 
 import icon_file_add
 import icon_folder_open
@@ -68,6 +70,14 @@ _default_slide_size_index = 1
 _default_hymal_slide_size_index = 0
 _default_hymal_font_size = 44.0
 _default_hymal_chap_font_size = 22.0
+_default_outline_weight = 1
+
+_color_black = (0,0,0)
+_color_white = (255,255,255)
+_color_red   = (255,0,0)
+_color_green = (0,255,0)
+_color_blue  = (0,0,255)
+_color_yellow= (255,255,0)
 
 _ppttab_text   = "PPT"
 _slidetab_text = "Slide"
@@ -88,7 +98,7 @@ def RGB(red, green, blue):
 	
 def get_rgb(c, sp=':'):
 	c1 = c.split(sp)
-	return int(c1[0]),int(c1[1]),int(c1[2])
+	return ppt_color(int(c1[0]),int(c1[1]),int(c1[2]))
 	
 def get_slide_size(t):
 	t1 = t.split(',')
@@ -102,6 +112,21 @@ class ppt_color:
 		self.b = b
 	def __str__(self):
 		return "(%3d,%3d,%3d)"%(self.r,self.g,self.b)
+
+
+class ppt_outlinetext_info:
+	def __init__(self, col=_color_black,
+					   style=msoLine.msoLineSingle,
+					   weight=_default_outline_weight):
+		self.col = ppt_color(col[0], col[1], col[2])
+		self.style = style
+		self.weight = weight
+		
+	def __str__(self):
+		return "Line color: %s\nStyle: %s\nWeight: %d"%\
+		        (str(self.col), 
+		        msoLine.get_linestyle_name(self.style),
+				self.weight)
 		
 class ppt_textbox_info:
 	def __init__(self, sx=_default_txt_sx,
@@ -118,6 +143,8 @@ class ppt_textbox_info:
 		self.font_bold = True
 		self.font_size = font_size
 		self.word_wrap = False
+		self.text_outline = True
+		self.outline = ppt_outlinetext_info()
 		#self.nparagraph = _default_txt_nparagraph
 		#self.paragraph_wrap = False
 	def __str__(self):
@@ -379,7 +406,6 @@ class QLivePPT(QtGui.QWidget):
 			self.set_textbox(txt_f, MSO_AUTO_SIZE.NONE, MSO_ANCHOR.MIDDLE, MSO_ANCHOR.MIDDLE)
 			
 			for l1 in l:
-				print(l1)
 				p = txt_f.add_paragraph()
 				p.text = l1
 				self.set_paragraph(p, PP_ALIGN.CENTER, 
@@ -501,17 +527,53 @@ class QLivePPT(QtGui.QWidget):
 		self.textbox_font_bold.setChecked(True)
 		font_layout.addWidget(self.textbox_font_bold, 2,3)
 		
+		#effect_layout = QtGui.QGridLayout()
+		#effect_layout = QtGui.QHBoxLayout()
 		font_layout.addWidget(QtGui.QLabel("Deep copy"),3, 0)
+		#effect1_layout.addWidget(QtGui.QLabel("Deep copy"))
 		self.deep_copy = QtGui.QCheckBox()
 		self.deep_copy.setChecked(self.ppt_slide.deep_copy)
 		self.deep_copy.stateChanged.connect(self.deep_copy_state_changed)
 		font_layout.addWidget(self.deep_copy,3, 1)
+		#effect1_layout.addWidget(self.deep_copy)
 		
 		font_layout.addWidget(QtGui.QLabel("Word wrap"),4, 0)
+		#effect1_layout.addWidget(QtGui.QLabel("Word wrap"))
 		self.word_wrap = QtGui.QCheckBox()
 		self.word_wrap.setChecked(self.ppt_textbox.word_wrap)
 		self.word_wrap.stateChanged.connect(self.word_wrap_state_changed)
 		font_layout.addWidget(self.word_wrap,4, 1)
+		#effect1_layout.addWidget(self.word_wrap)
+		
+		#effect_layout.addWidget(QtGui.QLabel("Outline"),0, 2)
+		#effect2_layout = QtGui.QGridLayout()
+		font_layout.addWidget(QtGui.QLabel("Outline"),5,0)
+		self.text_outline = QtGui.QCheckBox()
+		self.text_outline.setChecked(self.ppt_textbox.text_outline)
+		self.text_outline.stateChanged.connect(self.text_outline_state_changed)
+		font_layout.addWidget(self.text_outline, 5, 1)
+		#effect2_layout.addWidget(self.text_outline, 0,1)
+
+		#font = QtGui.QFont("Courier",11,True)
+		#fm = QtGui.QFontMetrics(font)
+		font_layout.addWidget(QtGui.QLabel("Color(RGB)"),6, 0)
+		self.text_outline_col =  QtGui.QLineEdit()
+		self.text_outline_col.setInputMask('999|999|999;-')
+		self.text_outline_col.setFixedSize(fm.width("888888888888"), fm.height())
+		self.text_outline_col.setFont(font)
+		col = self.ppt_textbox.outline.col
+		self.text_outline_col.setText("%03d|%03d|%03d"%(col.r, col.g, col.b))
+		self.text_outline_col_picker = QtGui.QPushButton('', self)
+		self.text_outline_col_picker.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_color_picker.table)))
+		self.text_outline_col_picker.setIconSize(QtCore.QSize(16,16))
+		self.connect(self.text_outline_col_picker, QtCore.SIGNAL('clicked()'), self.pick_text_outline_color)
+		font_layout.addWidget(self.text_outline_col, 6, 1)
+		font_layout.addWidget(self.text_outline_col_picker,6,2)
+		
+		font_layout.addWidget(QtGui.QLabel("Weight"),7, 0)
+		self.text_outline_weight =  QtGui.QLineEdit("%d"%self.ppt_textbox.outline.weight)
+		self.text_outline_weight.setSizePolicy(QtGui.QSizePolicy.Ignored, QtGui.QSizePolicy.Preferred)
+		font_layout.addWidget(self.text_outline_weight,7,1)
 		
 		menu_layout = QtGui.QHBoxLayout()
 		self.slide_menu_init_btn = QtGui.QPushButton('Init')
@@ -529,9 +591,16 @@ class QLivePPT(QtGui.QWidget):
 		layout.addRow(slide_layout2)
 		layout.addRow(text_layout)
 		layout.addRow(font_layout)
+		#layout.addRow(effect_layout)
 		layout.addRow(menu_layout)
 		self.slide_tab.setLayout(layout)
 	
+	def text_outline_state_changed(self):
+		if self.text_outline.isChecked():
+			self.ppt_textbox.text_outline = True
+		else:
+			self.ppt_textbox.text_outline = False
+			
 	def word_wrap_state_changed(self):
 		if self.deep_copy.isChecked():
 			self.ppt_textbox.word_wrap = True
@@ -543,6 +612,13 @@ class QLivePPT(QtGui.QWidget):
 			self.ppt_slide.deep_copy = True
 		else:
 			self.ppt_slide.deep_copy = False
+			
+	def pick_text_outline_color(self):
+		col = QtGui.QColorDialog.getColor()
+		if col.isValid():
+			r,g,b,a = col.getRgb()
+			self.ppt_textbox.outline.col = ppt_color(r,g,b)
+			self.text_outline_col.setText("%03d,%03d,%03d"%(r, g, b))
 			
 	def set_init_slide_value(self):
 		c1 = _default_slide_bk_col
@@ -560,6 +636,10 @@ class QLivePPT(QtGui.QWidget):
 		self.ppt_textbox.font_col = ppt_color(c2[0], c2[1], c2[2])
 		self.ppt_textbox.font_size = _default_font_size
 		self.ppt_textbox.font_bold = True
+		self.ppt_textbox.text_outline = False
+		c3 = _color_black
+		self.ppt_textbox.outline.col = ppt_color(c3[0], c3[1], c3[2])
+		self.ppt_textbox.outline.weight = 1
 		
 		self.slide_back_col.setText("%03d|%03d|%03d"%(c1[0], c1[1], c1[2]))
 		self.custom_slide_size.setChecked(False)
@@ -577,10 +657,12 @@ class QLivePPT(QtGui.QWidget):
 		self.textbox_font_col.setText("%03d|%03d|%03d"%(c2[0], c2[1], c2[2]))
 		self.textbox_font_size.setText("%f"%_default_font_size)
 		self.textbox_font_bold.setChecked(True)
+		self.text_outline.setChecked(False)
+		self.text_outline_col.setText("%03d|%03d|%03d"%(c3[0], c3[1], c3[2]))
+		self.text_outline_weight.setText("%d"%self.ppt_textbox.outline.weight)
 		
 	def apply_current_slide_value(self):
-		r,g,b = get_rgb(self.slide_back_col.text(), '|')
-		self.ppt_slide.back_col = ppt_color(r,g,b)
+		self.ppt_slide.back_col = get_rgb(self.slide_back_col.text(), '|')
 		
 		if self.custom_slide_size.isChecked():
 			self.ppt_slide.wid = float(self.custom_slide_wid.text())
@@ -596,12 +678,18 @@ class QLivePPT(QtGui.QWidget):
 		self.ppt_textbox.hgt = float(self.text_hgt.text())
 
 		self.ppt_textbox.font_name = self.textbox_font_name.text()
-		r,g,b = get_rgb(self.textbox_font_col.text(), '|')
-		self.ppt_textbox.font_col = ppt_color(r,g,b)
+		self.ppt_textbox.font_col = get_rgb(self.textbox_font_col.text(), '|')
 		self.ppt_textbox.font_size = float(self.textbox_font_size.text())
 		self.ppt_textbox.font_bold = self.textbox_font_bold.isChecked()
 		self.ppt_textbox.word_wrap = self.word_wrap.isChecked()
+		
+		self.ppt_textbox.text_outline = self.text_outline.isChecked()
+		if self.ppt_textbox.text_outline:
+			self.ppt_textbox.outline.col = get_rgb(self.text_outline_col.text(), '|')
+			self.ppt_textbox.outline.weight = int(self.text_outline_weight.text())
 
+		#self.global_message.appendPlainText(str(self.ppt_slide))
+		#self.global_message.appendPlainText(str(self.ppt_textbox))
 	def save_current_slide_value(self):
 		return
 	
@@ -741,7 +829,7 @@ class QLivePPT(QtGui.QWidget):
 		self.run_convert.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_convert.table)))
 		self.run_convert.setIconSize(QtCore.QSize(48,48))
 		self.run_convert.setStyleSheet("QPushButton { text-align: bottom; }")
-		self.run_convert.clicked.connect(self.create_liveppt)
+		self.run_convert.clicked.connect(self.run_subtitle)
 
 		self.ppt_to_pptx = QtGui.QPushButton('', self)
 		self.ppt_to_pptx.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_ppt_pptx.table)))
@@ -763,6 +851,40 @@ class QLivePPT(QtGui.QWidget):
 		layout.addRow(run_layout)
 		self.ppt_tab.setLayout(layout)
 				
+	def create_outline_text(self, sorce):
+		try:
+			Application = win32com.client.Dispatch("PowerPoint.Application")
+			#Application.Visible = True
+		except Exception as e:
+			QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', "%s"%str(e), 
+			QtGui.QMessageBox.Yes)
+			return
+
+		Presentation = Application.Presentations.Open(sorce)
+		for i, sld in enumerate(Presentation.Slides):
+			sld.Select()
+			# ppViewSlide : 1
+			Application.ActiveWindow.ViewType = 1
+			Application.ActiveWindow.Activate()
+        
+			try:
+				sld.Shapes[0].Select()
+			except Exception as e:
+				continue
+				
+			fnt = Application.ActiveWindow.Selection.TextRange2.Font
+			fnt.Line.Visible = True #msoCTrue
+			c = self.ppt_textbox.outline.col
+			fnt.Line.ForeColor.RGB = RGB(c.r, c.g, c.b)
+			fnt.Line.Weight = self.ppt_textbox.outline.weight
+		
+		#try:	
+		#Application.Save(sorce)
+		#except Exception as e:
+		#	QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', "%s"%str(e), 
+		#	QtGui.QMessageBox.Yes)
+		#Application.Quit()
+			
 	def convert_ppt_to_image(self):
 		nppt = self.ppt_list_table.rowCount()
 		if nppt is 0: return
@@ -786,11 +908,9 @@ class QLivePPT(QtGui.QWidget):
 				pass
 
 			Presentation = Application.Presentations.Open(sorc)
-			for i, s in enumerate(Presentation.Slides):
-				#for j in s.Shapes:
-				#	j.Textframe.TextRange2.Font.Line.Visible = True
-				#	j.Textframe.TextRange2.Line.ForeColor.RGB = RGB(255,0,0)
-				s.Export(os.path.join(img_folder,"%s%03d.jpg"%(ff[0],i)), "JPG")
+			for i, sld in enumerate(Presentation.Slides):
+				sld.Select()
+				sld.Export(os.path.join(img_folder,"%s%03d.jpg"%(ff[0],i)), "JPG")
 		Application.Quit()
 		
 		QtGui.QMessageBox.question(QtGui.QWidget(), 'completed!', "%s"%img_folder, 
@@ -1104,9 +1224,15 @@ class QLivePPT(QtGui.QWidget):
 			dest_ppt.save(sfn)
 		except Exception as e:
 			QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', "{}".format(str(e)), QtGui.QMessageBox.Yes)
-			del dest_ppt
+			#del dest_ppt
 			return
-			
+
+		return sfn
+
+	def run_subtitle(self):
+		sfn = self.create_liveppt()
+		if self.text_outline.isChecked():
+			self.create_outline_text(sfn)
 		QtGui.QMessageBox.question(QtGui.QWidget(), 'completed!', "{}".format(sfn), QtGui.QMessageBox.Yes)
 
 	def add_textbox(self, ds, sx, sy, wid, hgt):
