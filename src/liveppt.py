@@ -134,6 +134,58 @@ def get_slide_size(t):
 	t2 = t1[1][1:-1].split(':')
 	return float(t2[0]), float(t2[1])
 
+class QShadowInfo(QtGui.QDialog):
+	def __init__(self, shd):
+		super(QShadowInfo, self).__init__()
+		self.initUI(shd)
+		
+	def initUI(self, shd):
+		layout = QtGui.QFormLayout()
+		button_layout = QtGui.QHBoxLayout()
+		item_layout = QtGui.QVBoxLayout()
+		
+		# msoShadowStyleInnerShadow	1	
+		# Specifies the inner shadow effect.
+		# 
+		# msoShadowStyleMixed	-2	
+		# Specifies a combination of inner and outer shadow effects.
+		# 
+		# msoShadowStyleOuterShadow	2	
+		# Specifies the outer shadow effect.
+		self.style = QtGui.QComboBox(self)
+		shadow_style = ["Inner", "Outer", "Mixed"]
+		self.style.addItems(shadow_style)
+		self.style.setCurrentIndex(shd.Style)
+		item_layout.addWidget(self.style)
+		item_layout.addWidget(QtGui.QLabel("Offset(X)"))
+		self.offset_x = QtGui.QLineEdit("%d"%shd.OffsetX)
+		item_layout.addWidget(self.offset_x)
+		item_layout.addWidget(QtGui.QLabel("Offset(Y)"))
+		self.offset_y = QtGui.QLineEdit("%d"%shd.OffsetY)
+		item_layout.addWidget(self.offset_y)
+		item_layout.addWidget(QtGui.QLabel("Blur"))
+		self.blur = QtGui.QLineEdit("%d"%shd.Blur)
+		item_layout.addWidget(self.blur)
+		item_layout.addWidget(QtGui.QLabel("Transparency"))
+		self.trans = QtGui.QLineEdit("%f"%shd.Transparency)
+		item_layout.addWidget(self.trans)
+		
+		self.ok = QtGui.QPushButton('OK')
+		self.ok.clicked.connect(self.accept)
+		button_layout.addWidget(self.ok)
+		
+		layout.addRow(item_layout)
+		layout.addRow(button_layout)
+		self.setLayout(layout)
+		
+	def get_shadow_info(self):
+		st = int(self.style.currentIndex())
+		ox = int(self.offset_x.text())
+		oy = int(self.offset_y.text())
+		bl = int(self.blur.text())
+		tr = float(self.trans.text())
+		return st, ox, oy, bl, tr
+		
 class QImageResolution(QtGui.QDialog):
 	def __init__(self):
 		super(QImageResolution, self).__init__()
@@ -185,6 +237,24 @@ class ppt_outlinetext_info:
 		        msoLine.get_linestyle_name(self.style),
 				self.weight)
 		
+class ppt_shadow_info():
+	def __init__(self):
+		self.Visible = True
+		self.Style = 1
+		self.OffsetX = 2
+		self.OffsetY = 2
+		self.Blur = 2
+		self.Transparency = 0.7
+		
+	def __str__(self):
+		return "Style: %d\nOffset(x): %d\nOffset(y): %d\nBlur: %d\nTransparency: %f\n"%(self.Style,self.OffsetX,self.OffsetY,self.Blur,self.Transparency)
+		
+	def get_style_index(self):
+		return self.Style-1
+		
+	def set_style_index(self, s):
+		self.Style = s+1
+	
 class ppt_textbox_info:
 	def __init__(self, sx=_default_txt_sx,
 	                   sy=_default_txt_sy,
@@ -929,42 +999,26 @@ class QLivePPT(QtGui.QWidget):
 			self.global_message.appendPlainText('[Fail]: %s'%str(e))
 			return
 
+		shd = QShadowInfo(self.ppt_shadow)
+		if shd.exec_() == 1:
+			st, ox, oy, bl, tr = shd.get_shadow_info()
+			self.ppt_shadow.Style = st+1
+			self.ppt_shadow.OffsetX = ox
+			self.ppt_shadow.OffsetY = oy
+			self.ppt_shadow.Blur = bl
+			self.ppt_shadow.Transparency = tr
+			self.global_message.appendPlainText(str(self.ppt_shadow))
+			
 		Presentation = Application.Presentations.Open(sorce)
 		for i, sld in enumerate(Presentation.Slides):
-			#sld.Select()
-			#sld.Shapes[0].Select()
-			#shp = sld.Shapes[0]
-			#sdw = shp.TextFrame2.TextRange.Font.Shadow
-			#sdw.Visible = True
-			#sdw.Style = 2
-			#sdw.Type = 1
-			#sdw.OffsetX = 10
-			#sdw.OffsetY = 10
-			#sdw.Size = 1
-			#sdw.Blur = 4
-			#sdw.Transparency = 0.5
-			
 			for shp in sld.Shapes:
-				#fnt = shp.TextFrame.TextRange.Font
-				#fnt.Shadow = True
-				
-				# msoShadowStyleInnerShadow	1	
-				# Specifies the inner shadow effect.
-				# 
-				# msoShadowStyleMixed	-2	
-				# Specifies a combination of inner and outer shadow effects.
-				# 
-				# msoShadowStyleOuterShadow	2	
-				# Specifies the outer shadow effect.
-				
 				sdw = shp.TextFrame2.TextRange.Font.Shadow
 				sdw.Visible = True
-				sdw.Style = 2
-				sdw.OffsetX = 2
-				sdw.OffsetY = 2
-				#sdw.Size = 1
-				sdw.Blur = 2
-				sdw.Transparency = 0.7
+				sdw.Style = self.ppt_shadow.Style
+				sdw.OffsetX = self.ppt_shadow.OffsetX
+				sdw.OffsetY = self.ppt_shadow.OffsetY
+				sdw.Blur = self.ppt_shadow.Blur
+				sdw.Transparency = self.ppt_shadow.Transparency
 			
 		#Presentation.Save()
 		#Application.Quit()
@@ -1084,6 +1138,7 @@ class QLivePPT(QtGui.QWidget):
 		self.ppt_slide = ppt_slide_info()
 		self.ppt_textbox = ppt_textbox_info()
 		self.ppt_hymal = ppt_hymal_info()
+		self.ppt_shadow = ppt_shadow_info() 
 		
 	def custom_worship_type(self):
 		cid = self.publish_title.currentIndex()
