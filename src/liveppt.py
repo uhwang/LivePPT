@@ -4,6 +4,8 @@
 	
 	LivePPT Ver 0.1
 	
+	08/07/20  Custom Image Resolution @ PPP to Image
+	
 	Convert praise ppt to subtitle ppt for live streaming
 
 	Requirements
@@ -168,8 +170,6 @@ class ppt_color:
 		self.b = b
 	def __str__(self):
 		return "(%3d,%3d,%3d)"%(self.r,self.g,self.b)
-
-
 
 class ppt_outlinetext_info:
 	def __init__(self, col=_color_black,
@@ -918,6 +918,57 @@ class QLivePPT(QtGui.QWidget):
 		self.ppt_tab.setLayout(layout)
 		self.global_message.appendPlainText('=> PPT Tab UI created')
 				
+	def create_shadow_text(self, sorce):
+		try:
+			self.global_message.appendPlainText('[Outline Text]: open PowerPoint')
+			Application = win32com.client.Dispatch("PowerPoint.Application")
+			#Application.Visible = True
+		except Exception as e:
+			QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', "%s"%str(e), 
+			QtGui.QMessageBox.Yes)
+			self.global_message.appendPlainText('[Fail]: %s'%str(e))
+			return
+
+		Presentation = Application.Presentations.Open(sorce)
+		for i, sld in enumerate(Presentation.Slides):
+			#sld.Select()
+			#sld.Shapes[0].Select()
+			#shp = sld.Shapes[0]
+			#sdw = shp.TextFrame2.TextRange.Font.Shadow
+			#sdw.Visible = True
+			#sdw.Style = 2
+			#sdw.Type = 1
+			#sdw.OffsetX = 10
+			#sdw.OffsetY = 10
+			#sdw.Size = 1
+			#sdw.Blur = 4
+			#sdw.Transparency = 0.5
+			
+			for shp in sld.Shapes:
+				#fnt = shp.TextFrame.TextRange.Font
+				#fnt.Shadow = True
+				
+				# msoShadowStyleInnerShadow	1	
+				# Specifies the inner shadow effect.
+				# 
+				# msoShadowStyleMixed	-2	
+				# Specifies a combination of inner and outer shadow effects.
+				# 
+				# msoShadowStyleOuterShadow	2	
+				# Specifies the outer shadow effect.
+				
+				sdw = shp.TextFrame2.TextRange.Font.Shadow
+				sdw.Visible = True
+				sdw.Style = 2
+				sdw.OffsetX = 2
+				sdw.OffsetY = 2
+				#sdw.Size = 1
+				sdw.Blur = 2
+				sdw.Transparency = 0.7
+			
+		#Presentation.Save()
+		#Application.Quit()
+		
 	def create_outline_text(self, sorce):
 		try:
 			self.global_message.appendPlainText('[Outline Text]: open PowerPoint')
@@ -943,6 +994,8 @@ class QLivePPT(QtGui.QWidget):
 				
 			fnt = Application.ActiveWindow.Selection.TextRange2.Font
 			fnt.Line.Visible = True #msoCTrue
+			#fnt.Shadow = True
+			
 			c = self.ppt_textbox.outline.col
 			fnt.Line.ForeColor.RGB = RGB(c.r, c.g, c.b)
 			fnt.Line.Weight = self.ppt_textbox.outline.weight
@@ -1222,6 +1275,7 @@ class QLivePPT(QtGui.QWidget):
 				for shape in slide.shapes:
 					if not shape.has_text_frame:
 						continue
+					#sd = shape.shadow
 					p_list = []
 					for paragraph in shape.text_frame.paragraphs:
 						run_list = []
@@ -1323,7 +1377,8 @@ class QLivePPT(QtGui.QWidget):
 	def run_subtitle(self):
 		sfn = self.create_liveppt()
 		if sfn != -1 and self.text_outline.isChecked():
-			self.create_outline_text(sfn)
+			#self.create_outline_text(sfn)
+			self.create_shadow_text(sfn)
 			QtGui.QMessageBox.question(QtGui.QWidget(), 'Completed!', sfn, QtGui.QMessageBox.Yes)
 		#except:
 		#	pass
