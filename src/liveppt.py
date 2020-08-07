@@ -54,6 +54,7 @@ from pptx.enum.dml import MSO_LINE
 import sys
 from PyQt4 import QtCore, QtGui, Qt
 import win32com.client
+import time
 import msoLine
 
 import icon_file_add
@@ -131,6 +132,35 @@ def get_slide_size(t):
 	t2 = t1[1][1:-1].split(':')
 	return float(t2[0]), float(t2[1])
 
+class QImageResolution(QtGui.QDialog):
+	def __init__(self):
+		super(QImageResolution, self).__init__()
+		self.initUI()
+	
+	def initUI(self):
+		layout = QtGui.QFormLayout()
+		button_layout = QtGui.QHBoxLayout()
+		item_layout = QtGui.QHBoxLayout()
+		
+		self.res = QtGui.QComboBox(self)
+		self.res_list = ["HD:1280x720", "Full HD:1920x1080", "Quad HD:2560x1440", "Ultra HD:3840x2160"]
+		self.res.addItems(self.res_list)
+		#for x in encopt._pcm_acodec:
+		#	self.pcm.addItem(x)
+		item_layout.addWidget(self.res)
+		self.res.setCurrentIndex(0)
+			
+		self.ok = QtGui.QPushButton('OK')
+		self.ok.clicked.connect(self.accept)
+		button_layout.addWidget(self.ok)
+		layout.addRow(item_layout)
+		layout.addRow(button_layout)
+		self.setLayout(layout)
+		
+	def get_resolution(self):
+		r = self.res.currentText().split(':')[1].split('x')
+		return int(r[0]), int(r[1])
+		
 class ppt_color:
 	def __init__(self, r=255,g=255,b=255):
 		self.r = r
@@ -138,6 +168,7 @@ class ppt_color:
 		self.b = b
 	def __str__(self):
 		return "(%3d,%3d,%3d)"%(self.r,self.g,self.b)
+
 
 
 class ppt_outlinetext_info:
@@ -927,6 +958,12 @@ class QLivePPT(QtGui.QWidget):
 		nppt = self.ppt_list_table.rowCount()
 		if nppt is 0: return
 
+		res = QImageResolution()
+		if res.exec_() == 1:
+			w, h = res.get_resolution()
+			
+		h = int(float(w * self.ppt_slide.hgt) / self.ppt_slide.wid)
+				
 		try:
 			self.global_message.appendPlainText('[PPT to Img]: open PowerPoint')
 			Application = win32com.client.Dispatch("PowerPoint.Application")
@@ -949,8 +986,9 @@ class QLivePPT(QtGui.QWidget):
 			Presentation = Application.Presentations.Open(sorc)
 			for i, sld in enumerate(Presentation.Slides):
 				sld.Select()
-				sld.Export(os.path.join(img_folder,"%s%03d.jpg"%(ff[0],i)), "JPG")
+				sld.Export(os.path.join(img_folder,"%s%03d.jpg"%(ff[0],i)), "JPG", w, h)
 		Application.Quit()
+		time.sleep(0.5)
 		self.global_message.appendPlainText("[PPT to Img]: Success")
 		
 		QtGui.QMessageBox.question(QtGui.QWidget(), 'completed!', "%s"%img_folder, 
