@@ -1,5 +1,10 @@
 '''
-	convert praise ppt to subtitle ppt for live streaming
+	Author: Uisang Hwang
+	Email : uhwangtx@gmail.com
+	
+	LivePPT Ver 0.1
+	
+	Convert praise ppt to subtitle ppt for live streaming
 
 	Requirements
 	----------------------------------------------
@@ -16,7 +21,28 @@
 	----------------------------------------------
 	* PyQt4
 	* Python pptx
+	* win32com
 	
+	Outline text VBA code
+	----------------------------------------------
+	Sub outline()
+	Dim sld As Slide
+	Dim shp As Shape
+	
+	For Each sld In ActivePresentation.Slides
+		sld.Select
+		ActiveWindow.ViewType = ppViewSlide
+		ActiveWindow.Activate
+		
+		sld.Shapes(1).Select
+		With ActiveWindow.Selection.TextRange2.Font
+			.Line.Visible = msoCTrue
+			.Line.ForeColor.RGB = RGB(255, 0, 0)
+			.Line.Weight = 2
+		End With
+	Next sld
+	End Sub
+
 '''
 
 import re
@@ -148,8 +174,7 @@ class ppt_textbox_info:
 		#self.nparagraph = _default_txt_nparagraph
 		#self.paragraph_wrap = False
 	def __str__(self):
-		return "Sx: %2.4f\nSy: %2.4f\nWid: %2.4f\n\
-		        Hgt: %2.4f\nFn: %s\nFc: %s\nFz: %2.4f"%(\
+		return "Sx   : %2.4f\nSy   : %2.4f\nWid  : %2.4f\nHgt  : %2.4f\nFont : %s\nColor: %s\nSize : %2.4f"%(\
 				self.sx, self.sy, self.wid, self.hgt, 
 				self.font_name, str(self.font_col), self.font_size)
 		
@@ -166,7 +191,8 @@ class ppt_slide_info:
 		self.deep_copy = True
 	
 	def __str__(self):
-		return ""
+		return "Wid: %2.4f\nHgt: %2.4f\nColor: %s\nDCopy: %s"%(\
+		       self.wid,self.hgt,str(self.back_col),str(self.deep_copy))
 
 # use max size: sx=0, sy=0, wid=max wid, hgt=max hgt
 class ppt_hymal_info(ppt_slide_info, ppt_textbox_info):
@@ -206,10 +232,10 @@ class QLivePPT(QtGui.QWidget):
 		self.tabs.addTab(self.txttoppt_tab, _txttoppt_text)
 		self.tabs.addTab(self.message_tab, _messagetab_text)
 		
+		self.message_tab_UI()
 		self.ppt_tab_UI()
 		self.slide_tab_UI()
 		self.hymal_tab_UI()
-		self.message_tab_UI()
 		tab_layout.addWidget(self.tabs)
 		self.form_layout.addRow(tab_layout)
 		self.setLayout(self.form_layout)
@@ -217,7 +243,6 @@ class QLivePPT(QtGui.QWidget):
 		self.setWindowTitle("PPT")
 		self.setWindowIcon(QtGui.QIcon(QtGui.QPixmap(icon_liveppt.table)))
 		self.show()
-
 		
 	def txttoppt_tab_UI(self):
 		return
@@ -232,6 +257,7 @@ class QLivePPT(QtGui.QWidget):
 		clear_btn.clicked.connect(self.clear_global_message)
 		
 		self.global_message = QtGui.QPlainTextEdit()
+		self.global_message.setFont(QtGui.QFont("Courier",9,True))
 		policy = self.sizePolicy()
 		policy.setVerticalStretch(1)
 		self.global_message.setSizePolicy(policy)
@@ -322,6 +348,7 @@ class QLivePPT(QtGui.QWidget):
 		layout.addRow(publish_layout)
 		layout.addRow(run_layout)
 		self.hymal_tab.setLayout(layout)
+		self.global_message.appendPlainText('=> Hymal tab UI created')
 		
 	def pick_hymal_bk_color(self):
 		col = QtGui.QColorDialog.getColor()
@@ -373,6 +400,7 @@ class QLivePPT(QtGui.QWidget):
 				title = key
 		
 		fname = "%s-%d.pptx"%(title,chap)
+		self.global_message.appendPlainText("[Hymal PPT]: %s"%(title))
 		save_file = os.path.join(self.ppt_hymal.save_path, fname)
 		
 		self.ppt_hymal.sx  = float(self.hymal_info_table.item(1,1).text())
@@ -416,10 +444,13 @@ class QLivePPT(QtGui.QWidget):
 		try:
 			dest_ppt.save(save_file)
 		except Exception as e:
-			QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', "{}".format(str(e)), 
+			QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', str(e), 
 			QtGui.QMessageBox.Yes)
-			del dest_ppt
+			self.global_message.appendPlainText('[Error]: %s'%e)
+			dest_ppt = None
 			return
+			
+		self.global_message.appendPlainText('[Hymal PPT]: success\n')
 			
 	def slide_tab_UI(self):
 		layout = QtGui.QFormLayout()
@@ -579,9 +610,9 @@ class QLivePPT(QtGui.QWidget):
 		self.slide_menu_init_btn = QtGui.QPushButton('Init')
 		self.slide_menu_apply_btn = QtGui.QPushButton('Apply')
 		self.slide_menu_save_btn = QtGui.QPushButton('Save')
-		self.connect(self.slide_menu_init_btn , QtCore.SIGNAL('clicked()'), self.set_init_slide_value)
-		self.connect(self.slide_menu_apply_btn, QtCore.SIGNAL('clicked()'), self.apply_current_slide_value)
-		self.connect(self.slide_menu_save_btn , QtCore.SIGNAL('clicked()'), self.save_current_slide_value)
+		self.connect(self.slide_menu_init_btn , QtCore.SIGNAL('clicked()'), self.set_init_slide_info)
+		self.connect(self.slide_menu_apply_btn, QtCore.SIGNAL('clicked()'), self.apply_current_slide_info)
+		self.connect(self.slide_menu_save_btn , QtCore.SIGNAL('clicked()'), self.save_current_slide_info)
 		menu_layout.addWidget(self.slide_menu_init_btn)
 		menu_layout.addWidget(self.slide_menu_apply_btn)
 		menu_layout.addWidget(self.slide_menu_save_btn)
@@ -594,6 +625,7 @@ class QLivePPT(QtGui.QWidget):
 		#layout.addRow(effect_layout)
 		layout.addRow(menu_layout)
 		self.slide_tab.setLayout(layout)
+		self.global_message.appendPlainText('=> Slide Tab UI created')
 	
 	def text_outline_state_changed(self):
 		if self.text_outline.isChecked():
@@ -620,7 +652,7 @@ class QLivePPT(QtGui.QWidget):
 			self.ppt_textbox.outline.col = ppt_color(r,g,b)
 			self.text_outline_col.setText("%03d,%03d,%03d"%(r, g, b))
 			
-	def set_init_slide_value(self):
+	def set_init_slide_info(self):
 		c1 = _default_slide_bk_col
 		c2 = _default_font_col
 		w, h = get_slide_size(_slide_size_type[_default_slide_size_index])
@@ -661,7 +693,8 @@ class QLivePPT(QtGui.QWidget):
 		self.text_outline_col.setText("%03d|%03d|%03d"%(c3[0], c3[1], c3[2]))
 		self.text_outline_weight.setText("%d"%self.ppt_textbox.outline.weight)
 		
-	def apply_current_slide_value(self):
+	def apply_current_slide_info(self):
+		self.global_message.appendPlainText("\n[Apply Slide Info]")
 		self.ppt_slide.back_col = get_rgb(self.slide_back_col.text(), '|')
 		
 		if self.custom_slide_size.isChecked():
@@ -688,9 +721,11 @@ class QLivePPT(QtGui.QWidget):
 			self.ppt_textbox.outline.col = get_rgb(self.text_outline_col.text(), '|')
 			self.ppt_textbox.outline.weight = int(self.text_outline_weight.text())
 
-		#self.global_message.appendPlainText(str(self.ppt_slide))
-		#self.global_message.appendPlainText(str(self.ppt_textbox))
-	def save_current_slide_value(self):
+		self.global_message.appendPlainText("[Slide]\n%s"%str(self.ppt_slide))
+		self.global_message.appendPlainText("[Textbox]\n%s"%str(self.ppt_textbox))
+		self.global_message.appendPlainText("[Apply Slide Info]\n")
+		
+	def save_current_slide_info(self):
 		return
 	
 	def pick_bk_color(self):
@@ -850,14 +885,17 @@ class QLivePPT(QtGui.QWidget):
 		layout.addRow(publish_layout)
 		layout.addRow(run_layout)
 		self.ppt_tab.setLayout(layout)
+		self.global_message.appendPlainText('=> PPT Tab UI created')
 				
 	def create_outline_text(self, sorce):
 		try:
+			self.global_message.appendPlainText('[Outline Text]: open PowerPoint')
 			Application = win32com.client.Dispatch("PowerPoint.Application")
 			#Application.Visible = True
 		except Exception as e:
 			QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', "%s"%str(e), 
 			QtGui.QMessageBox.Yes)
+			self.global_message.appendPlainText('[Fail]: %s'%str(e))
 			return
 
 		Presentation = Application.Presentations.Open(sorce)
@@ -878,18 +916,19 @@ class QLivePPT(QtGui.QWidget):
 			fnt.Line.ForeColor.RGB = RGB(c.r, c.g, c.b)
 			fnt.Line.Weight = self.ppt_textbox.outline.weight
 		
-		#try:	
-		#Application.Save(sorce)
+		Presentation.Save()
 		#except Exception as e:
 		#	QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', "%s"%str(e), 
 		#	QtGui.QMessageBox.Yes)
-		#Application.Quit()
+		Application.Quit()
+		self.global_message.appendPlainText("[Outline text]: Success")
 			
 	def convert_ppt_to_image(self):
 		nppt = self.ppt_list_table.rowCount()
 		if nppt is 0: return
 
 		try:
+			self.global_message.appendPlainText('[PPT to Img]: open PowerPoint')
 			Application = win32com.client.Dispatch("PowerPoint.Application")
 			#Application.Visible = True
 		except Exception as e:
@@ -912,6 +951,7 @@ class QLivePPT(QtGui.QWidget):
 				sld.Select()
 				sld.Export(os.path.join(img_folder,"%s%03d.jpg"%(ff[0],i)), "JPG")
 		Application.Quit()
+		self.global_message.appendPlainText("[PPT to Img]: Success")
 		
 		QtGui.QMessageBox.question(QtGui.QWidget(), 'completed!', "%s"%img_folder, 
 		QtGui.QMessageBox.Yes)
@@ -921,10 +961,12 @@ class QLivePPT(QtGui.QWidget):
 		if nppt is 0: return
 
 		try:
+			self.global_message.appendPlainText('[PPT to PPTX]: open PowerPoint')
 			Application = win32com.client.Dispatch("PowerPoint.Application")
 			#Application.Visible = True
 		except Exception as e:
 			QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', "%s"%str(e), QtGui.QMessageBox.Yes)
+			self.global_message.appendPlainText('[Fail]: %s'%str(e))
 			return
 			
 		for npr in range(nppt):
@@ -944,7 +986,7 @@ class QLivePPT(QtGui.QWidget):
 					return
 			Presentation.Close()
 		Application.Quit()
-		
+		self.global_message.appendPlainText("[PPT to PPTX]: Success")
 		QtGui.QMessageBox.question(QtGui.QWidget(), 'completed!', "%s"%dest, QtGui.QMessageBox.Yes)
 		
 	def set_common_var(self):
@@ -1108,10 +1150,11 @@ class QLivePPT(QtGui.QWidget):
 		if nppt is 0: return
 
 		if self.add_publish_date.isChecked():
-			save_file = "%s %s.pptx"%(self.publish_date.text(), self.publish_title.currentText())
+			save_file = "%s %s-sub.pptx"%(self.publish_date.text(), self.publish_title.currentText())
 		else:
-			save_file = "%s.pptx"%(self.publish_title.currentText())
+			save_file = "%s-sub.pptx"%(self.publish_title.currentText())
 			
+		self.global_message.appendPlainText('[Subtitle PPT]')
 		dest_ppt = pptx.Presentation()
 		dest_ppt.slide_width = pptx.util.Inches(self.ppt_slide.wid)
 		dest_ppt.slide_height = pptx.util.Inches(self.ppt_slide.hgt)
@@ -1119,9 +1162,19 @@ class QLivePPT(QtGui.QWidget):
 
 		#self.add_empty_slide(dest_ppt, blank_slide_layout, self.ppt_slide.back_col)
 		for npr in range(nppt):
-			npf = os.path.join(self.ppt_list_table.item(npr, 2).text(), self.ppt_list_table.item(npr,0).text())
+			sp = self.ppt_list_table.item(npr, 2).text()
+			sf = self.ppt_list_table.item(npr,0).text()
+			npf = os.path.join(sp, sf)
+			self.global_message.appendPlainText("[Source]\nPath: %s\nName: %s"%(sp,sf))
 			npg = int(self.ppt_list_table.item(npr, 3).text())
-			src = pptx.Presentation(npf)
+			try:
+				src = pptx.Presentation(npf)
+			except Exception as e:
+				QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', "{}".format(e), QtGui.QMessageBox.Yes)
+				self.global_message.appendPlainText('[Error]: %s'%e)
+				dest_ppt = None
+				return
+
 			for slide in src.slides:
 				in_text = self.slide_has_text(slide)
 				if in_text=='' and self.ppt_slide.deep_copy:
@@ -1223,17 +1276,19 @@ class QLivePPT(QtGui.QWidget):
 			sfn = os.path.join(self.save_directory_path.text(),save_file)
 			dest_ppt.save(sfn)
 		except Exception as e:
-			QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', "{}".format(str(e)), QtGui.QMessageBox.Yes)
-			#del dest_ppt
-			return
-
+			QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', "{}".format(e), QtGui.QMessageBox.Yes)
+			self.global_message.appendPlainText('[Error]: %s'%str(e))
+			return -1
+		self.global_message.appendPlainText('[Subtitle PPT]: completed(%s)'%save_file)
 		return sfn
 
 	def run_subtitle(self):
 		sfn = self.create_liveppt()
-		if self.text_outline.isChecked():
+		if sfn != -1 and self.text_outline.isChecked():
 			self.create_outline_text(sfn)
-		QtGui.QMessageBox.question(QtGui.QWidget(), 'completed!', "{}".format(sfn), QtGui.QMessageBox.Yes)
+			QtGui.QMessageBox.question(QtGui.QWidget(), 'Completed!', sfn, QtGui.QMessageBox.Yes)
+		#except:
+		#	pass
 
 	def add_textbox(self, ds, sx, sy, wid, hgt):
 		return ds.shapes.add_textbox(\

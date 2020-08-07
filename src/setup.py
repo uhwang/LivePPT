@@ -16,6 +16,7 @@ if sys.platform == "win32":
 
 # Dependencies are automatically detected, but it might need fine tuning.
 build_exe_options = {"packages": ["os"], 
+					 #"includes": ["newhymal.hdb", "outline.bas"],
                      "excludes": ["numpy", "matplotlib", "tkinter"],
 					 'build_exe': 'LPPT'
 					 }
