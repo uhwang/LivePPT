@@ -356,10 +356,7 @@ class ppt_textbox_info:
 		self.font_bold = True
 		self.font_size = font_size
 		self.word_wrap = False
-		#self.text_outline = True
-		#self.outline = ppt_outlinetext_info()
-		#self.nparagraph = _default_txt_nparagraph
-		#self.paragraph_wrap = False
+		self.align = PP_ALIGN.CENTER
 		self.fx = ppt_fx_info()
 		
 	def __str__(self):
@@ -958,6 +955,7 @@ class QLivePPT(QtGui.QWidget):
 		self.ppt_textbox.font_col = ppt_color(c2[0], c2[1], c2[2])
 		self.ppt_textbox.font_size = _default_font_size
 		self.ppt_textbox.font_bold = True
+		self.ppt_textbox.align = 0 # center
 		#self.ppt_textbox.fx.show_outline = False
 		#c3 = _color_black
 		#self.ppt_textbox.outline.col = ppt_color(c3[0], c3[1], c3[2])
@@ -975,6 +973,7 @@ class QLivePPT(QtGui.QWidget):
 		self.text_sy .setText("%f"%_default_txt_sy)
 		self.text_wid.setText("%f"%_default_txt_wid)
 		self.text_hgt.setText("%f"%_default_txt_hgt)
+		self.choose_text_aligh.setCurrentIndex(self.ppt_textbox.align) 
 		self.textbox_font_name.setText(_default_font_name)
 		self.textbox_font_col.setText("%03d|%03d|%03d"%(c2[0], c2[1], c2[2]))
 		self.textbox_font_size.setText("%f"%_default_font_size)
@@ -1005,6 +1004,7 @@ class QLivePPT(QtGui.QWidget):
 		self.ppt_textbox.font_size = float(self.textbox_font_size.text())
 		self.ppt_textbox.font_bold = self.textbox_font_bold.isChecked()
 		self.ppt_textbox.word_wrap = self.word_wrap.isChecked()
+		self.ppt_textbox.align = get_texalign(self.choose_text_aligh.currentIndex())
 		
 		#self.ppt_textbox.fx.show_outline = self.text_outline.isChecked()
 		#if self.ppt_textbox.fx.show_outline:
@@ -1150,7 +1150,7 @@ class QLivePPT(QtGui.QWidget):
 		publish_layout.addWidget(self.save_directory_button, 4, 2)
 		
 		run_layout = QtGui.QGridLayout()
-		isz = 24
+		isz = 32
 		self.run_convert = QtGui.QPushButton('', self)
 		self.run_convert.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_convert.table)))
 		self.run_convert.setIconSize(QtCore.QSize(isz,isz))
@@ -1648,7 +1648,7 @@ class QLivePPT(QtGui.QWidget):
 								p.text = w
 								self.set_paragraph(p, 
 									#PP_ALIGN.CENTER,
-									get_texalign(self.choose_text_aligh.currentIndex()),
+									get_texalign(self.ppt_textbox.align),
 									self.ppt_textbox.font_name,
 									self.ppt_textbox.font_size,
 									self.ppt_textbox.font_col,
@@ -1658,7 +1658,7 @@ class QLivePPT(QtGui.QWidget):
 							p.text = ' '.join(k_list)
 							self.set_paragraph(p,
 									#PP_ALIGN.CENTER,
-									get_texalign(self.choose_text_aligh.currentIndex()),
+									get_texalign(self.ppt_textbox.align),
 									self.ppt_textbox.font_name,
 									self.ppt_textbox.font_size,
 									self.ppt_textbox.font_col,
@@ -1686,7 +1686,7 @@ class QLivePPT(QtGui.QWidget):
 								p.text = w
 								self.set_paragraph(p, 
 									#PP_ALIGN.CENTER,
-									get_texalign(self.choose_text_aligh.currentIndex()),
+									get_texalign(self.ppt_textbox.align),
 									self.ppt_textbox.font_name,
 									self.ppt_textbox.font_size,
 									self.ppt_textbox.font_col,
@@ -1696,7 +1696,7 @@ class QLivePPT(QtGui.QWidget):
 							p.text = ' '.join(k_list)
 							self.set_paragraph(p, 
 									#PP_ALIGN.CENTER,
-									get_texalign(self.choose_text_aligh.currentIndex()),
+									get_texalign(self.ppt_textbox.align),
 									self.ppt_textbox.font_name,
 									self.ppt_textbox.font_size,
 									self.ppt_textbox.font_col,
