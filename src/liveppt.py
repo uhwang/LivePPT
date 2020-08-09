@@ -6,8 +6,10 @@
 	
 	08/07/20  Custom Image Resolution @ PPP to Image
 	          Custom Shadow effect
-	
-	
+	08/08/20  Separation of outline and shadow effect 
+	          Each presentation opens a same file.
+			  Add Text align
+			  
 	Convert praise ppt to subtitle ppt for live streaming
 
 	Requirements
@@ -125,6 +127,20 @@ _SAVE_FOLDER_HYMAL = 1
 
 _worship_type = ["주일예배", "수요예배", "새벽기도", 
                  "부흥회"  , "특별예베", "직접입력"]
+				 
+_pp_align = {"0": PP_ALIGN.CENTER, 
+             "1": PP_ALIGN.DISTRIBUTE,
+			 "2": PP_ALIGN.JUSTIFY,
+			 "3": PP_ALIGN.JUSTIFY_LOW,
+			 "4": PP_ALIGN.LEFT,
+			 "5": PP_ALIGN.RIGHT,
+			 "6": PP_ALIGN.THAI_DISTRIBUTE,
+			 "7": PP_ALIGN.MIXED
+			 }
+			 
+def get_texalign(idx):
+	return _pp_align[str(idx)]
+	
 def RGB(red, green, blue):
     assert 0 <= red <=255    
     assert 0 <= green <=255
@@ -793,6 +809,14 @@ class QLivePPT(QtGui.QWidget):
 		text_layout.addWidget(self.text_hgt, 3, 1)
 		text_layout.addWidget(QtGui.QLabel("inch"), 3,2)
 
+		t_align = ["CENTER", "DISTRIBUTE","JUSTIFY",
+		           "JUSTIFY_LOW","LEFT","RIGHT","THAI_DISTRIBUTE","MIXED"]
+		text_layout.addWidget(QtGui.QLabel("Aligh"))
+		self.choose_text_aligh = QtGui.QComboBox()
+		self.choose_text_aligh.addItems(t_align)
+		self.choose_text_aligh.setCurrentIndex(0) # center
+		text_layout.addWidget(self.choose_text_aligh)
+		
 		font_layout = QtGui.QGridLayout()
 		font_layout.addWidget(QtGui.QLabel("Font(RGB)"), 0, 0)
 		self.textbox_font_col = QtGui.QLineEdit()
@@ -1623,7 +1647,8 @@ class QLivePPT(QtGui.QWidget):
 								p = txt_f.add_paragraph()
 								p.text = w
 								self.set_paragraph(p, 
-									PP_ALIGN.CENTER,
+									#PP_ALIGN.CENTER,
+									get_texalign(self.choose_text_aligh.currentIndex()),
 									self.ppt_textbox.font_name,
 									self.ppt_textbox.font_size,
 									self.ppt_textbox.font_col,
@@ -1632,7 +1657,8 @@ class QLivePPT(QtGui.QWidget):
 							p = txt_f.add_paragraph()
 							p.text = ' '.join(k_list)
 							self.set_paragraph(p,
-									PP_ALIGN.CENTER,
+									#PP_ALIGN.CENTER,
+									get_texalign(self.choose_text_aligh.currentIndex()),
 									self.ppt_textbox.font_name,
 									self.ppt_textbox.font_size,
 									self.ppt_textbox.font_col,
@@ -1659,7 +1685,8 @@ class QLivePPT(QtGui.QWidget):
 								p = txt_f.add_paragraph()
 								p.text = w
 								self.set_paragraph(p, 
-									PP_ALIGN.CENTER,
+									#PP_ALIGN.CENTER,
+									get_texalign(self.choose_text_aligh.currentIndex()),
 									self.ppt_textbox.font_name,
 									self.ppt_textbox.font_size,
 									self.ppt_textbox.font_col,
@@ -1668,7 +1695,8 @@ class QLivePPT(QtGui.QWidget):
 							p = txt_f.add_paragraph()
 							p.text = ' '.join(k_list)
 							self.set_paragraph(p, 
-									PP_ALIGN.CENTER,
+									#PP_ALIGN.CENTER,
+									get_texalign(self.choose_text_aligh.currentIndex()),
 									self.ppt_textbox.font_name,
 									self.ppt_textbox.font_size,
 									self.ppt_textbox.font_col,
