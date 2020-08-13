@@ -691,12 +691,13 @@ class QLivePPT(QtGui.QWidget):
 				title = key
 		
 		fname = "%s-%d.pptx"%(title,chap)
-		self.global_message.appendPlainText("Title: %s\nChap: %d"%(title, key))
+		self.global_message.appendPlainText("Title: %s\nChap: %d"%(title, chap))
 		sfn = os.path.join(self.hymal_save_path.text(), fname)
 		
-		ans = QtGui.QMessageBox.question(self, 'Continue?', 
-                 '%s already exist!'%sfn, QMessageBox.Yes, QMessageBox.No)
-		if ans == QtGui.QMessageBox.No: return
+		if os.path.isfile(sfn):
+			ans = QtGui.QMessageBox.question(self, 'Continue?', 
+					'%s already exist!'%sfn, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
+			if ans == QtGui.QMessageBox.No: return
 		
 		self.ppt_hymal.sx  = float(self.hymal_info_table.item(1,1).text())
 		self.ppt_hymal.sy  = float(self.hymal_info_table.item(2,1).text())
@@ -745,7 +746,7 @@ class QLivePPT(QtGui.QWidget):
 			dest_ppt = None
 			return
 			
-		self.global_message.appendPlainText('... Create Hymal PPT: success\n')
+		self.global_message.appendPlainText('... Create Hymal: success\n')
 			
 	def slide_tab_UI(self):
 		layout = QtGui.QFormLayout()
