@@ -1,6 +1,8 @@
 # msoLine
 # 
 
+from collections import OrderedDict
+
 # Single line.
 msoLineSingle = 1	
 
@@ -23,13 +25,23 @@ msoLineThinThick = 3
 # Two thin lines.
 msoLineThinThin = 2
 
-style_to_name = {\
-"1": "msoLineSingle",
-"2": "msoLineThinThin",
-"3": "msoLineThinThick",
-"4": "msoLineThickThin",
-"5": "msoLineThickBetweenThin",
-}
+_line_type = OrderedDict()
 
-def get_linestyle_name(style):
-	return style_to_name[str(style)]
+_line_type["1"]= "msoLineSingle"
+_line_type["2"]= "msoLineThinThin"
+_line_type["3"]= "msoLineThinThick"
+_line_type["4"]= "msoLineThickThin"
+_line_type["5"]= "msoLineThickBetweenThin"
+
+def get_linestyle_list():
+	style = []
+	for key, val in _line_type.items():
+		style.append(val[7:])
+	return style
+	
+# make sure the idx starts from 1
+def get_linestyle_name(idx):
+	return _line_type[str(idx)]
+	
+def index_to_style(idx):
+	return idx+1
