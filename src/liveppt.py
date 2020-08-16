@@ -10,6 +10,7 @@
 	          Each presentation opens a same file.
 			  Add Text align
 	08/13/20  Merge ppt files
+	08/15/20  Add dash, transprancy in Fx outline
 	
 	Convert praise ppt to subtitle ppt for live streaming
 
@@ -44,9 +45,34 @@
 		sld.Shapes(1).Select
 		With ActiveWindow.Selection.TextRange2.Font
 			.Line.Visible = msoCTrue
+			.Line.Pattern = msoPattern10Percent
 			.Line.ForeColor.RGB = RGB(255, 0, 0)
 			.Line.Weight = 2
+			.Line.Style = msoLineSingle
+			.Line.DashStyle = msoLineDash
+			.Line.Transparency = 1
 		End With
+	Next sld
+	End Sub
+
+	Shadow text VBA code
+	----------------------------------------------
+	Sub shadow()
+	Dim sld As Slide
+	Dim shp As Shape
+	For Each sld In ActivePresentation.Slides
+		For Each shp In sld.Shapes
+			With shp.TextFrame2.TextRange.Font
+			.shadow.Visible = msoCTrue
+			.shadow.Style = msoShadowStyleOuterShadow
+			.shadow.OffsetX = 2
+			.shadow.OffsetY = 2
+			' !!!! Do not use size option !!!!
+			'.shadow.Size = 1
+			.shadow.Blur = 2
+			.shadow.Transparency = 0.7
+			End With
+		Next shp
 	Next sld
 	End Sub
 
@@ -63,6 +89,7 @@ from PyQt4 import QtCore, QtGui, Qt
 import win32com.client
 import time
 import msoLine
+import msoDash
 
 import icon_file_add
 import icon_folder_open
@@ -107,7 +134,7 @@ _default_slide_size_index = 1
 _default_hymal_slide_size_index = 0
 _default_hymal_font_size = 44.0
 _default_hymal_chap_font_size = 22.0
-_default_outline_weight = 1
+_default_outline_weight = 0.25
 
 _liveppt_postfix = '-sub'
 _message_separator= '-'*15
@@ -126,8 +153,8 @@ _txtppt_text = "TxtPPT"
 _fxtab_text    = "Fx"
 _messagetab_text = "Message"
 
-_SAVE_FOLDER_SLIDE = 0
-_SAVE_FOLDER_HYMAL = 1
+#_SAVE_FOLDER_SLIDE = 0
+#_SAVE_FOLDER_HYMAL = 1
 
 _worship_type = ["주일예배", "수요예배", "새벽기도", 
                  "부흥회"  , "특별예베", "직접입력"]
@@ -304,12 +331,16 @@ class ppt_outlinetext_info:
 					   weight=_default_outline_weight):
 		self.col = ppt_color(col[0], col[1], col[2])
 		self.style = style
+		self.dash = msoDash.msoLineSolid
+		self.transprancy = 0.0
 		self.weight = weight
 		
 	def __str__(self):
-		return "Line color: %s\nStyle: %s\nWeight: %d"%\
+		return "Color : %s\nStyle : %s\nDash  : %s\nTransp: %f\nWeight: %f"%\
 		        (str(self.col), 
 		        msoLine.get_linestyle_name(self.style),
+				msoDash.get_dashstyle_name(self.dash),
+				self.transprancy,
 				self.weight)
 		
 # <a:effectLst>
@@ -330,7 +361,8 @@ class ppt_shadow_info():
 		self.Transparency = 0.7
 		
 	def __str__(self):
-		return "Style    : %d\nOffset(x): %d\nOffset(y): %d\nBlur     : %d\nTransparency: %f"%(self.Style,self.OffsetX,self.OffsetY,self.Blur,self.Transparency)
+		return "Style : %d\nOff(x): %d\nOff(y): %d\nBlur  : %d\nTransp: %f"%(
+		self.Style,self.OffsetX,self.OffsetY,self.Blur,self.Transparency)
 		
 	def get_style_index(self):
 		return self.Style-1
@@ -344,6 +376,13 @@ class ppt_fx_info():
 		self.show_shadow = True
 		self.shadow = ppt_shadow_info()
 		self.outline = ppt_outlinetext_info()
+		
+	def __str__(self):
+		return "Outline: %s\n%s\nShadow: %s\n%s"%(
+		str(self.show_outline),
+		str(self.outline),
+		str(self.show_shadow),
+		str(self.shadow))
 		
 class ppt_textbox_info:
 	def __init__(self, sx=_default_txt_sx,
@@ -438,6 +477,7 @@ class QLivePPT(QtGui.QWidget):
 		self.show()
 		
 	def fx_tab_UI(self):
+		import msoDash
 		layout = QtGui.QFormLayout()
 		ohlyout = QtGui.QHBoxLayout()
 		ohlyout.addWidget(QtGui.QLabel("OUTLINE EFFECT"))
@@ -460,7 +500,7 @@ class QLivePPT(QtGui.QWidget):
 		header.setResizeMode(1, QtGui.QHeaderView.Stretch)
 		header.setResizeMode(2, QtGui.QHeaderView.ResizeToContents)
 		
-		info = ["Color", "Style", "weight"]
+		info = ["Color", "Line", "Dash", "Transp", "weight"]
 		self.fx_outline_tbl.setRowCount(len(info))
 		for ii, jj in enumerate(info):
 			item = QtGui.QTableWidgetItem(jj)
@@ -474,14 +514,25 @@ class QLivePPT(QtGui.QWidget):
 		self.connect(self.fx_outline_col_picker, QtCore.SIGNAL('clicked()'), self.pick_text_outline_color)
 		self.fx_outline_tbl.setCellWidget(0,2, self.fx_outline_col_picker)
 		
-		style = msoLine.get_linestyle_items()
-		self.fx_line_style = QtGui.QComboBox()
-		self.fx_line_style.addItems(style)
-		self.fx_outline_tbl.setCellWidget(1,1, self.fx_line_style)
+		#self.fx_outline_dash_chk = QtGui.QCheckBox()
+		#self.fx_outline_dash_chk.setChecked(False)
+		#self.fx_outline_tbl.setCellWidget(2,2, self.fx_outline_dash_chk)
+		dash = msoDash.get_dashstyle_list()
+		dash.insert(0, "N/A")
+		self.fx_outline_dash_style = QtGui.QComboBox()
+		self.fx_outline_dash_style.addItems(dash)
+		self.fx_outline_dash_style.setCurrentIndex(1) # solid 
+		self.fx_outline_tbl.setCellWidget(2,1, self.fx_outline_dash_style)
+		
+		style = msoLine.get_linestyle_list()
+		self.fx_outline_style = QtGui.QComboBox()
+		self.fx_outline_style.addItems(style)
+		self.fx_outline_tbl.setCellWidget(1,1, self.fx_outline_style)
 		
 		self.fx_outline_tbl.item(0,1).setText(str(self.ppt_textbox.fx.outline.col))
-		self.fx_outline_tbl.item(1,1).setText(msoLine.get_linestyle_name(self.ppt_textbox.fx.outline.style))
-		self.fx_outline_tbl.item(2,1).setText("%d"%self.ppt_textbox.fx.outline.weight)
+		#self.fx_outline_tbl.item(1,1).setText(msoLine.get_linestyle_name(self.ppt_textbox.fx.outline.style))
+		self.fx_outline_tbl.item(3,1).setText("%f"%self.ppt_textbox.fx.outline.transprancy)
+		self.fx_outline_tbl.item(4,1).setText("%f"%self.ppt_textbox.fx.outline.weight)
 				
 		self.fx_outline_tbl.resizeRowsToContents()
 
@@ -1278,6 +1329,8 @@ class QLivePPT(QtGui.QWidget):
 		self.ppt_textbox.fx.shadow.Blur    = int(self.fx_shadow_tbl.item(3,1).text())
 		self.ppt_textbox.fx.shadow.Transparency = float(self.fx_shadow_tbl.item(4,1).text())
 		
+		self.global_message.appendPlainText(str(self.ppt_textbox.fx.shadow))
+		
 		try:
 			Presentation = Application.Presentations.Open(sfn)
 		except Exception as e:
@@ -1301,7 +1354,7 @@ class QLivePPT(QtGui.QWidget):
 		Application.Quit()
 		
 	def create_outline_text(self, sorce):
-	
+
 		nppt = self.ppt_list_table.rowCount()
 		if nppt is 0: return
 		
@@ -1338,7 +1391,23 @@ class QLivePPT(QtGui.QWidget):
 			QtGui.QMessageBox.Yes)
 			self.global_message.appendPlainText('... Fail: %s'%str(e))
 			return
+		
+		
+		rgb = _find_rgb.search(self.fx_outline_tbl.item(0,1).text())
+		c = ppt_color(int(rgb[1]),int(rgb[2]),int(rgb[3]))
+		s = msoLine.index_to_style(self.fx_outline_style.currentIndex()) # style
+		d = self.fx_outline_dash_style.currentIndex()
+		t = float(self.fx_outline_tbl.item(3,1).text()) # transprancy
+		w = float(self.fx_outline_tbl.item(4,1).text()) # weight
+		
+		self.ppt_textbox.fx.outline.col = c
+		self.ppt_textbox.fx.outline.style = s
+		self.ppt_textbox.fx.outline.dash = d
+		self.ppt_textbox.fx.outline.transprancy = t
+		self.ppt_textbox.fx.outline.weight = w
 			
+		self.global_message.appendPlainText(str(self.ppt_textbox.fx.outline))
+		
 		for i, sld in enumerate(Presentation.Slides):
 			sld.Select()
 			# ppViewSlide : 1
@@ -1347,16 +1416,16 @@ class QLivePPT(QtGui.QWidget):
         
 			try:
 				sld.Shapes[0].Select()
-			except Exception as e:
-				continue
+			except Exception as e: # in case of an empty slide
+				continue 
 				
 			fnt = Application.ActiveWindow.Selection.TextRange2.Font
 			fnt.Line.Visible = True #msoCTrue
-			#fnt.Shadow = True
-			
-			c = self.ppt_textbox.fx.outline.col
 			fnt.Line.ForeColor.RGB = RGB(c.r, c.g, c.b)
-			fnt.Line.Weight = self.ppt_textbox.fx.outline.weight
+			fnt.Line.Style = s
+			fnt.Line.DashStyle = d
+			fnt.Line.Transparency = t
+			fnt.Line.Weight = w
 		
 		Presentation.Save()
 		Application.Quit()
@@ -1587,8 +1656,8 @@ class QLivePPT(QtGui.QWidget):
 	def get_save_file(self, pfix = _liveppt_postfix):
 		if self.add_publish_date.isChecked():
 			save_file = "%s %s%s.pptx"%(
-			self.publish_date.text(), pfix,
-			self.publish_title.currentText())
+			self.publish_date.text(), 
+			self.publish_title.currentText(),pfix)
 		else:
 			save_file = "%s%s.pptx"%(
 			self.publish_title.currentText(), pfix)
