@@ -117,7 +117,8 @@ _slide_size_type = [
 	"[16:9],[13.3:7.5]"
 ]
 
-_skip_hymal_info = re.compile('[\(\d\)]')
+#_skip_hymal_info = re.compile('[\(\d\)]')
+_skip_hymal_info = re.compile('[\d]')
 _find_lyric_number = re.compile('\d\.')
 _find_rgb = re.compile("(\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})")
 
@@ -1485,10 +1486,11 @@ class QLivePPT(QtGui.QWidget):
 			
 		for npr in range(nppt):
 			path = self.ppt_list_table.item(npr, 2).text()
+			#path = self.save_directory_path.text()
 			sorc = os.path.join(path, self.ppt_list_table.item(npr,0).text())
 			Presentation = Application.Presentations.Open(sorc)
 			fname = os.path.splitext(self.ppt_list_table.item(npr,0).text())
-			dest = os.path.join(path, "%s.pptx"%(fname[0]))
+			dest = os.path.join(self.save_directory_path.text(), "%s.pptx"%(fname[0]))
 			try:
 				Presentation.Saveas(dest)
 			except Exception as e:
@@ -1719,10 +1721,13 @@ class QLivePPT(QtGui.QWidget):
 							line_text = _find_lyric_number.sub('', line_text)
 						
 						# skip hymal chapter info. ex: (찬송기 123장)
+						line_text = line_text.strip()
 						match = _skip_hymal_info.search(line_text)
-						if match or not line_text: continue
-						p_list.append(line_text.strip())
+						if match or not line_text: 
+							continue
+						p_list.append(line_text)
 					
+					print('p list: ', p_list)
 					np_list = len(p_list)
 					
 					# 8/12/20 Find Line Tabulation (Unicode 0x000b)
@@ -1748,10 +1753,12 @@ class QLivePPT(QtGui.QWidget):
 						k_list = []
 						for k in range(npg):
 							k_list.append(p_list[j+k])
+							
 						if self.ppt_textbox.word_wrap:
 							for w in k_list:
 								p = txt_f.add_paragraph()
 								p.text = w
+								#print('p.text:', p.text)
 								self.set_paragraph(p, 
 									get_texalign(self.ppt_textbox.align),
 									self.ppt_textbox.font_name,
@@ -1761,6 +1768,7 @@ class QLivePPT(QtGui.QWidget):
 						else:	
 							p = txt_f.add_paragraph()
 							p.text = ' '.join(k_list)
+							#print('p.text:', p.text)
 							self.set_paragraph(p,
 									get_texalign(self.ppt_textbox.align),
 									self.ppt_textbox.font_name,
@@ -1770,6 +1778,7 @@ class QLivePPT(QtGui.QWidget):
 
 					if npg == 1: continue
 					left_over = np_list%npg
+					#print('left over:',left_over)
 					if left_over:
 						dest_slide = self.add_empty_slide(dest_ppt, blank_slide_layout, self.ppt_slide.back_col)
 						txt_box = self.add_textbox(dest_slide,
@@ -1781,9 +1790,10 @@ class QLivePPT(QtGui.QWidget):
 						self.set_textbox(txt_f,MSO_AUTO_SIZE.NONE, MSO_ANCHOR.BOTTOM, MSO_ANCHOR.MIDDLE)
 						k_list = []
 						l = j-npg
-						for k in range(l):
-							k_list.append(p_list[l+k])
-							
+						#print(j,l)
+						for k in range(left_over):
+							#k_list.append(p_list[l+k])
+							k_list.append(p_list[j+k])
 						if self.ppt_textbox.word_wrap:
 							for w in k_list:
 								p = txt_f.add_paragraph()
