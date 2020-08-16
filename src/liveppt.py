@@ -90,6 +90,7 @@ import win32com.client
 import time
 import msoLine
 import msoDash
+import msoShadow
 
 import icon_file_add
 import icon_folder_open
@@ -118,7 +119,7 @@ _slide_size_type = [
 ]
 
 #_skip_hymal_info = re.compile('[\(\d\)]')
-_skip_hymal_info = re.compile('[\d]')
+_skip_hymal_info = re.compile('[찬송가]')
 _find_lyric_number = re.compile('\d\.')
 _find_rgb = re.compile("(\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})")
 
@@ -133,7 +134,7 @@ _default_font_name = "맑은고딕"
 _default_txt_nparagraph = 1
 _default_slide_size_index = 1
 _default_hymal_slide_size_index = 0
-_default_hymal_font_size = 44.0
+_default_hymal_font_size = 40.0
 _default_hymal_chap_font_size = 22.0
 _default_outline_weight = 0.25
 
@@ -330,6 +331,7 @@ class ppt_outlinetext_info:
 	def __init__(self, col=_color_black,
 					   style=msoLine.msoLineSingle,
 					   weight=_default_outline_weight):
+		self.show = True
 		self.col = ppt_color(col[0], col[1], col[2])
 		self.style = style
 		self.dash = msoDash.msoLineSolid
@@ -337,8 +339,8 @@ class ppt_outlinetext_info:
 		self.weight = weight
 		
 	def __str__(self):
-		return "Color : %s\nStyle : %s\nDash  : %s\nTransp: %f\nWeight: %f"%\
-		        (str(self.col), 
+		return "Show  : %s\nColor : %s\nStyle : %s\nDash  : %s\nTransp: %f\nWeight: %f"%\
+		        (str(self.show), str(self.col), 
 		        msoLine.get_linestyle_name(self.style),
 				msoDash.get_dashstyle_name(self.dash),
 				self.transprancy,
@@ -355,15 +357,16 @@ class ppt_outlinetext_info:
 class ppt_shadow_info():
 	def __init__(self):
 		self.Visible = True
-		self.Style = 2
+		self.Style = msoShadow._default_shadow_type # Outer: 2
 		self.OffsetX = 2
 		self.OffsetY = 2
 		self.Blur = 2
 		self.Transparency = 0.7
 		
 	def __str__(self):
-		return "Style : %d\nOff(x): %d\nOff(y): %d\nBlur  : %d\nTransp: %f"%(
-		self.Style,self.OffsetX,self.OffsetY,self.Blur,self.Transparency)
+		return "Style : %s\nOff(x): %d\nOff(y): %d\nBlur  : %d\nTransp: %f"%(
+		msoShadow.get_shadowstyle_name(self.Style),
+		self.OffsetX,self.OffsetY,self.Blur,self.Transparency)
 		
 	def get_style_index(self):
 		return self.Style-1
@@ -501,7 +504,7 @@ class QLivePPT(QtGui.QWidget):
 		header.setResizeMode(1, QtGui.QHeaderView.Stretch)
 		header.setResizeMode(2, QtGui.QHeaderView.ResizeToContents)
 		
-		info = ["Color", "Line", "Dash", "Transp", "weight"]
+		info = ["Show", "Color", "Line", "Dash", "Transp", "weight"]
 		self.fx_outline_tbl.setRowCount(len(info))
 		for ii, jj in enumerate(info):
 			item = QtGui.QTableWidgetItem(jj)
@@ -509,31 +512,32 @@ class QLivePPT(QtGui.QWidget):
 			self.fx_outline_tbl.setItem(ii, 0, item)
 			self.fx_outline_tbl.setItem(ii, 1, QtGui.QTableWidgetItem(""))
 
+			
+		self.fx_outline_show = QtGui.QCheckBox()
+		self.fx_outline_show.setChecked(True)
+		self.fx_outline_tbl.setCellWidget(0, 1, self.fx_outline_show)
+		
 		self.fx_outline_col_picker = QtGui.QPushButton('', self)
 		self.fx_outline_col_picker.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_color_picker.table)))
 		self.fx_outline_col_picker.setIconSize(QtCore.QSize(16,16))
 		self.connect(self.fx_outline_col_picker, QtCore.SIGNAL('clicked()'), self.pick_text_outline_color)
-		self.fx_outline_tbl.setCellWidget(0,2, self.fx_outline_col_picker)
+		self.fx_outline_tbl.setCellWidget(1,2, self.fx_outline_col_picker)
+		self.fx_outline_tbl.item(1,1).setText(str(self.ppt_textbox.fx.outline.col))
 		
-		#self.fx_outline_dash_chk = QtGui.QCheckBox()
-		#self.fx_outline_dash_chk.setChecked(False)
-		#self.fx_outline_tbl.setCellWidget(2,2, self.fx_outline_dash_chk)
+		style = msoLine.get_linestyle_list()
+		self.fx_outline_style = QtGui.QComboBox()
+		self.fx_outline_style.addItems(style)
+		self.fx_outline_tbl.setCellWidget(2,1, self.fx_outline_style)
+
 		dash = msoDash.get_dashstyle_list()
 		dash.insert(0, "N/A")
 		self.fx_outline_dash_style = QtGui.QComboBox()
 		self.fx_outline_dash_style.addItems(dash)
 		self.fx_outline_dash_style.setCurrentIndex(1) # solid 
-		self.fx_outline_tbl.setCellWidget(2,1, self.fx_outline_dash_style)
+		self.fx_outline_tbl.setCellWidget(3,1, self.fx_outline_dash_style)
 		
-		style = msoLine.get_linestyle_list()
-		self.fx_outline_style = QtGui.QComboBox()
-		self.fx_outline_style.addItems(style)
-		self.fx_outline_tbl.setCellWidget(1,1, self.fx_outline_style)
-		
-		self.fx_outline_tbl.item(0,1).setText(str(self.ppt_textbox.fx.outline.col))
-		#self.fx_outline_tbl.item(1,1).setText(msoLine.get_linestyle_name(self.ppt_textbox.fx.outline.style))
-		self.fx_outline_tbl.item(3,1).setText("%f"%self.ppt_textbox.fx.outline.transprancy)
-		self.fx_outline_tbl.item(4,1).setText("%f"%self.ppt_textbox.fx.outline.weight)
+		self.fx_outline_tbl.item(4,1).setText("%f"%self.ppt_textbox.fx.outline.transprancy)
+		self.fx_outline_tbl.item(5,1).setText("%f"%self.ppt_textbox.fx.outline.weight)
 				
 		self.fx_outline_tbl.resizeRowsToContents()
 
@@ -750,6 +754,7 @@ class QLivePPT(QtGui.QWidget):
 			ans = QtGui.QMessageBox.question(self, 'Continue?', 
 					'%s already exist!'%sfn, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
 			if ans == QtGui.QMessageBox.No: return
+			else: os.remove(sfn)
 		
 		self.ppt_hymal.sx  = float(self.hymal_info_table.item(1,1).text())
 		self.ppt_hymal.sy  = float(self.hymal_info_table.item(2,1).text())
@@ -770,7 +775,7 @@ class QLivePPT(QtGui.QWidget):
 		dest_ppt.slide_height = pptx.util.Inches(self.ppt_hymal.hgt)
 		blank_slide_layout = dest_ppt.slide_layouts[6]
 		
-		for l in lyric:
+		for l1, l in enumerate(lyric):
 			dest_slide = self.add_empty_slide(dest_ppt, blank_slide_layout, 
 			self.ppt_hymal.back_col)
 			txt_box = self.add_textbox(dest_slide, 
@@ -781,14 +786,30 @@ class QLivePPT(QtGui.QWidget):
 			txt_f = txt_box.text_frame
 			self.set_textbox(txt_f, MSO_AUTO_SIZE.NONE, MSO_ANCHOR.MIDDLE, MSO_ANCHOR.MIDDLE)
 			
-			for l1 in l:
+			for l2 in l:
 				p = txt_f.add_paragraph()
-				p.text = l1
+				p.text = l2
 				self.set_paragraph(p, PP_ALIGN.CENTER, 
 			                   self.ppt_hymal.font_name, 
 							   self.ppt_hymal.font_size,
 							   self.ppt_hymal.font_col, 
 							   True)
+			p = txt_f.add_paragraph()
+			p.text ='\n'
+			self.set_paragraph(p, PP_ALIGN.CENTER, 
+			                   self.ppt_hymal.font_name, 
+							   10,
+							   self.ppt_hymal.font_col, 
+							   True)
+							   
+			p = txt_f.add_paragraph()
+			p.text = '(찬송가 %d장 %d절)'%(chap, l1+1)
+			self.set_paragraph(p, PP_ALIGN.CENTER, 
+			                   self.ppt_hymal.font_name, 
+							   20,
+							   self.ppt_hymal.font_col, 
+							   True)
+				
 		try:
 			dest_ppt.save(sfn)
 		except Exception as e:
@@ -1343,7 +1364,7 @@ class QLivePPT(QtGui.QWidget):
 		for i, sld in enumerate(Presentation.Slides):
 			for shp in sld.Shapes:
 				sdw = shp.TextFrame2.TextRange.Font.Shadow
-				sdw.Visible = -1 # msoTrue
+				sdw.Visible = 1 # msoTrue
 				sdw.Style   = self.ppt_textbox.fx.shadow.Style
 				sdw.OffsetX = self.ppt_textbox.fx.shadow.OffsetX
 				sdw.OffsetY = self.ppt_textbox.fx.shadow.OffsetY
@@ -1394,13 +1415,15 @@ class QLivePPT(QtGui.QWidget):
 			return
 		
 		
-		rgb = _find_rgb.search(self.fx_outline_tbl.item(0,1).text())
+		h = self.fx_outline_show.isChecked()
+		rgb = _find_rgb.search(self.fx_outline_tbl.item(1,1).text())
 		c = ppt_color(int(rgb[1]),int(rgb[2]),int(rgb[3]))
 		s = msoLine.index_to_style(self.fx_outline_style.currentIndex()) # style
 		d = self.fx_outline_dash_style.currentIndex()
-		t = float(self.fx_outline_tbl.item(3,1).text()) # transprancy
-		w = float(self.fx_outline_tbl.item(4,1).text()) # weight
+		t = float(self.fx_outline_tbl.item(4,1).text()) # transprancy
+		w = float(self.fx_outline_tbl.item(5,1).text()) # weight
 		
+		self.ppt_textbox.fx.outline.show = h
 		self.ppt_textbox.fx.outline.col = c
 		self.ppt_textbox.fx.outline.style = s
 		self.ppt_textbox.fx.outline.dash = d
@@ -1421,7 +1444,8 @@ class QLivePPT(QtGui.QWidget):
 				continue 
 				
 			fnt = Application.ActiveWindow.Selection.TextRange2.Font
-			fnt.Line.Visible = True #msoCTrue
+			# msoCTrue: 1, msoTrue: -1, msoFalse: 0
+			fnt.Line.Visible = h if h is True else False 
 			fnt.Line.ForeColor.RGB = RGB(c.r, c.g, c.b)
 			fnt.Line.Style = s
 			fnt.Line.DashStyle = d
@@ -1727,7 +1751,7 @@ class QLivePPT(QtGui.QWidget):
 							continue
 						p_list.append(line_text)
 					
-					print('p list: ', p_list)
+					#print('p list: ', p_list)
 					np_list = len(p_list)
 					
 					# 8/12/20 Find Line Tabulation (Unicode 0x000b)
