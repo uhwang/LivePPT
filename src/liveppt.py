@@ -990,7 +990,7 @@ class QLivePPT(QtGui.QWidget):
 		if col.isValid():
 			r,g,b,a = col.getRgb()
 			self.ppt_textbox.fx.outline.col = ppt_color(r,g,b)
-			self.fx_outline_tbl.item(0,1).setText("%03d,%03d,%03d"%(r, g, b))
+			self.fx_outline_tbl.item(1,1).setText("%03d,%03d,%03d"%(r, g, b))
 			
 	def set_init_slide_info(self):
 		self.global_message.appendPlainText('... Init Slide Info\n')
