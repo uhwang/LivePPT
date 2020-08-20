@@ -11,6 +11,7 @@
 			  Add Text align
 	08/13/20  Merge ppt files
 	08/15/20  Add dash, transprancy in Fx outline
+	08/20/20  Add Txt to PPT
 	
 	Convert praise ppt to subtitle ppt for live streaming
 
