@@ -472,6 +472,7 @@ class QLivePPT(QtGui.QWidget):
 		self.slide_tab_UI()
 		self.hymal_tab_UI()
 		self.fx_tab_UI()
+		self.txtppt_tab_UI()
 		tab_layout.addWidget(self.tabs)
 		self.form_layout.addRow(tab_layout)
 		self.setLayout(self.form_layout)
@@ -604,6 +605,131 @@ class QLivePPT(QtGui.QWidget):
 		layout.addWidget(self.global_message)
 		self.message_tab.setLayout(layout)
 		self.global_message.appendPlainText("... Message Tab UI Created")
+		
+	def clear_txtppt(self):
+		self.txtppt_edit.clear()
+		
+	def change_txtppt_save_path(self):
+		startingDir = os.getcwd() 
+		path = QtGui.QFileDialog.getExistingDirectory(None, 'Save folder', startingDir, QtGui.QFileDialog.ShowDirsOnly)
+		if not path: return
+		self.txtppt_save_path.setText(path)
+		
+	def create_txtppt(self):
+		text = self.txtppt_edit.toPlainText().split('\n')
+		
+		for i, t in enumerate(text):
+			text[i] = t.strip()
+
+		#https://www.geeksforgeeks.org/python-split-list-into-lists-by-particular-value/
+		size = len(text) 
+		idx_list = [idx + 1 for idx, val in enumerate(text) if val == ''] 
+		line_text = [text[i:j] 
+		       for i, j in zip([0] + idx_list, idx_list + ([size] if idx_list[-1] != size else []))] 
+			  
+		sfn = os.path.join(self.txtppt_save_path.text(), self.txtppt_fname.text())
+		
+		if os.path.isfile(sfn):
+			ans = QtGui.QMessageBox.question(self, 'Continue?', 
+					'%s already exist!'%sfn, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
+			if ans == QtGui.QMessageBox.No: return
+			else: os.remove(sfn)
+			
+		self.global_message.appendPlainText('... Create TxtPPT')
+		dest_ppt = pptx.Presentation()
+		dest_ppt.slide_width = pptx.util.Inches(self.ppt_hymal.wid)
+		dest_ppt.slide_height = pptx.util.Inches(self.ppt_hymal.hgt)
+		blank_slide_layout = dest_ppt.slide_layouts[6]
+
+		self.global_message.appendPlainText('Total slide: %d'%len(line_text))
+		#self.global_message.appendPlainText('%s'%str(self.ppt_hymal))
+		
+		sx  = float(self.hymal_info_table.item(1,1).text())
+		sy  = float(self.hymal_info_table.item(2,1).text())
+		wid = float(self.hymal_info_table.item(3,1).text())
+		hgt = float(self.hymal_info_table.item(4,1).text())
+		font_name = self.hymal_info_table.item(5,1).text()
+
+		col_str = self.hymal_info_table.item(8,1).text()
+		bk_col = _find_rgb.search(col_str)
+		back_col = ppt_color(int(bk_col.group(1)), 
+		                     int(bk_col.group(2)), 
+                             int(bk_col.group(3)))
+							 
+		col_str = self.hymal_info_table.item(6,1).text()
+		ft_col = _find_rgb.search(col_str)
+		font_size = float(self.hymal_info_table.item(7,1).text())
+		font_col = ppt_color(int(ft_col.group(1)), int(ft_col.group(2)), int(ft_col.group(3)))
+
+		for in_text in line_text:
+			dest_slide = self.add_empty_slide(dest_ppt, blank_slide_layout, self.ppt_slide.back_col)
+			txt_box = self.add_textbox(dest_slide, sx, sy, wid, hgt)
+			txt_f = txt_box.text_frame
+			self.set_textbox(txt_f, MSO_AUTO_SIZE.NONE, MSO_ANCHOR.MIDDLE, MSO_ANCHOR.MIDDLE)
+			
+			for l2 in in_text:
+				if l2 == '': continue
+				p = txt_f.add_paragraph()
+				p.text = l2
+				self.set_paragraph(p, PP_ALIGN.CENTER, font_name, font_size, font_col, True)
+		try:
+			dest_ppt.save(sfn)
+		except Exception as e:
+			QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', str(e), 
+			QtGui.QMessageBox.Yes)
+			self.global_message.appendPlainText('... Error: %s'%e)
+			dest_ppt = None
+			return
+			
+		self.global_message.appendPlainText('... Create TxtPPT: success\n')
+		QtGui.QMessageBox.question(QtGui.QWidget(), 'Completed!', sfn, QtGui.QMessageBox.Yes)
+				
+	def txtppt_tab_UI(self):
+		layout = QtGui.QFormLayout()
+		laybtn = QtGui.QHBoxLayout()
+		
+		clear_btn = QtGui.QPushButton('Clear', self)
+		clear_btn.clicked.connect(self.clear_txtppt)
+		
+		run_btn = QtGui.QPushButton('Create', self)
+		run_btn.clicked.connect(self.create_txtppt)
+		laybtn.addWidget(clear_btn)
+		laybtn.addWidget(run_btn)
+		
+		laypub = QtGui.QGridLayout()
+		#layfolder = QtGui.QHBoxLayout()
+		#layfolder.addWidget(QtGui.QLabel('Dest'))
+		laypub.addWidget(QtGui.QLabel('Dest'), 0, 0)
+		self.txtppt_save_path  = QtGui.QLineEdit(os.getcwd())
+		self.txtppt_save_path_btn = QtGui.QPushButton('', self)
+		self.txtppt_save_path_btn.clicked.connect(self.change_txtppt_save_path)
+		self.txtppt_save_path_btn.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_folder_open.table)))
+		self.txtppt_save_path_btn.setIconSize(QtCore.QSize(16,16))
+		#layfolder.addWidget(self.txtppt_save_path)
+		#layfolder.addWidget(self.txtppt_save_path_btn)
+		laypub.addWidget(self.txtppt_save_path, 0, 1)
+		laypub.addWidget(self.txtppt_save_path_btn, 0, 2)
+		
+		#layfile = QtGui.QHBoxLayout()
+		#layfile.addWidget(QtGui.QLabel('File'))
+		laypub.addWidget(QtGui.QLabel('File'), 1, 0)
+		self.txtppt_fname = QtGui.QLineEdit('txtppt.pptx')
+		#layfile.addWidget(self.txtppt_fname)
+		laypub.addWidget(self.txtppt_fname, 1, 1)
+		
+		self.txtppt_edit = QtGui.QPlainTextEdit()
+		self.txtppt_edit.setFont(QtGui.QFont("Courier",9,True))
+		policy = self.sizePolicy()
+		policy.setVerticalStretch(1)
+		self.txtppt_edit.setSizePolicy(policy)
+		self.txtppt_edit.setFont(QtGui.QFont( "Courier,15,-1,2,50,0,0,0,1,0"))
+		
+		layout.addRow(laybtn)
+		#layout.addRow(layfolder)
+		#layout.addRow(layfile)
+		layout.addRow(laypub)
+		layout.addWidget(self.txtppt_edit)
+		self.txtppt_tab.setLayout(layout)
 		
 	def hymal_tab_UI(self):
 		layout = QtGui.QFormLayout()
