@@ -119,7 +119,7 @@ _slide_size_type = [
 ]
 
 #_skip_hymal_info = re.compile('[\(\d\)]')
-_skip_hymal_info = re.compile('[찬송가]')
+_skip_hymal_info = re.compile('찬송가')
 _find_lyric_number = re.compile('\d\.')
 _find_rgb = re.compile("(\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})")
 
@@ -1701,6 +1701,7 @@ class QLivePPT(QtGui.QWidget):
 			ans = QtGui.QMessageBox.question(self, 'Continue?', 
 					'%s already exist!'%sfn, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
 			if ans == QtGui.QMessageBox.No: return
+			else: os.remove(sfn)
 			
 		self.global_message.appendPlainText('... Create Subtitle PPT')
 		dest_ppt = pptx.Presentation()
@@ -1735,23 +1736,28 @@ class QLivePPT(QtGui.QWidget):
 					for paragraph in shape.text_frame.paragraphs:
 						run_list = []
 						for run in paragraph.runs:
-							#print(run.text,'\n')
+							#print('run: ', run.text)
 							run_list.append(run.text)
 						line_text = ''.join(run_list)
 						
+						#print('line text: ', line_text)
 						# Delete 1. 2. 3. ...
 						match = _find_lyric_number.search(line_text)
 						if match:
+							#print('match1: ', line_text)
 							line_text = _find_lyric_number.sub('', line_text)
 						
 						# skip hymal chapter info. ex: (찬송기 123장)
 						line_text = line_text.strip()
+						#print('match2: ', line_text)
 						match = _skip_hymal_info.search(line_text)
 						if match or not line_text: 
+							#print('match3: %s'%match)
 							continue
 						p_list.append(line_text)
 					
 					#print('p list: ', p_list)
+					
 					np_list = len(p_list)
 					
 					# 8/12/20 Find Line Tabulation (Unicode 0x000b)
