@@ -11,7 +11,8 @@
 			  Add Text align
 	08/13/20  Merge ppt files
 	08/15/20  Add dash, transprancy in Fx outline
-	08/20/20  Add Txt to PPT
+	08/21/20  Add Gradient fill in a text frame
+		      Add margin (L,T,R,B) of a text frame 
 	
 	Convert praise ppt to subtitle ppt for live streaming
 
@@ -82,9 +83,10 @@
 import re
 import os
 import datetime
+from copy import deepcopy
 import pptx
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR, MSO_AUTO_SIZE
-from pptx.enum.dml import MSO_LINE
+from pptx.enum.dml import MSO_LINE, MSO_FILL
 import sys
 from PyQt4 import QtCore, QtGui, Qt
 import win32com.client
@@ -124,11 +126,16 @@ _skip_hymal_info = re.compile('찬송가')
 _find_lyric_number = re.compile('\d\.')
 _find_rgb = re.compile("(\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})")
 
-_default_txt_sx = 2.25
-_default_txt_sy = 4.66
-_default_txt_wid = 5.51
-_default_txt_hgt = 0.4
-_default_slide_bk_col = (0,32,96)
+#_default_txt_sx = 2.25
+#_default_txt_sy = 4.66
+#_default_txt_wid = 5.51
+#_default_txt_hgt = 0.4
+#_default_slide_bk_col = (0,32,96)
+_default_txt_sx = 0
+_default_txt_sy = 4.48
+_default_txt_wid = 10.0
+_default_txt_hgt = 1.15
+_default_slide_bk_col = (255,255,255)
 _default_font_col = (255,255,255)
 _default_font_size = 20.0 # point
 _default_font_name = "맑은고딕"
@@ -138,6 +145,12 @@ _default_hymal_slide_size_index = 0
 _default_hymal_font_size = 40.0
 _default_hymal_chap_font_size = 22.0
 _default_outline_weight = 0.25
+_default_text_align_index = 4
+
+_default_textbox_left_margin = 0.7
+_default_textbox_top_margin  = 0.05
+_default_textbox_right_margin = 0.1
+_default_textbox_bottom_margin = 0.05
 
 _liveppt_postfix = '-sub'
 _message_separator= '-'*15
@@ -395,23 +408,28 @@ class ppt_textbox_info:
 					   wid=_default_txt_wid,
 					   hgt=_default_txt_hgt,
 					   font_size = _default_font_size):
-		self.sx  = float(sx)
-		self.sy  = float(sy)
-		self.wid = float(wid)
-		self.hgt = float(hgt)
-		self.font_name = _default_font_name
-		self.font_col  = ppt_color()
-		self.font_bold = True
-		self.font_size = font_size
-		self.word_wrap = False
-		self.align = 0 # center
-		self.fx = ppt_fx_info()
+		self.sx            = float(sx)
+		self.sy            = float(sy)
+		self.wid           = float(wid)
+		self.hgt           = float(hgt)
+		self.left_margin   = _default_textbox_left_margin
+		self.top_margin    = _default_textbox_top_margin
+		self.right_margin  = _default_textbox_right_margin
+		self.bottom_margin = _default_textbox_bottom_margin
+		self.font_name     = _default_font_name
+		self.font_col      = ppt_color()
+		self.font_bold     = True
+		self.font_size     = font_size
+		self.word_wrap     = False
+		self.align         = _default_text_align_index # center(0), LEFT(4)
+		self.fx            = ppt_fx_info()
 		
 	def __str__(self):
-		return 'Sx   : %2.4f\nSy   : %2.4f\nWid  : %2.4f\nHgt  : %2.4f\nFont : %s\nColor: %s\nSize : %2.4f\nWrap : %s\nAlign: %s'%(
+		return 'Sx   : %2.4f\nSy   : %2.4f\nWid  : %2.4f\nHgt  : %2.4f\nFont : %s\nColor: %s\nSize : %2.4f\nWrap : %s\nAlign: %s\n** Margin**\nLeft  : %2.2f\nTop   : %2.2f\nRight : %2.2f\nBottom: %2.2f'%(
 			   self.sx, self.sy, self.wid, self.hgt, self.font_name, 
 			   str(self.font_col), self.font_size, str(self.word_wrap), 
-			   get_texalign(self.align))
+			   get_texalign(self.align), self.left_margin, self.top_margin, 
+			   self.right_margin, self.bottom_margin)
 		
 class ppt_slide_info:
 	def __init__(self, w=None,h=None):
@@ -438,6 +456,30 @@ class ppt_hymal_info(ppt_slide_info, ppt_textbox_info):
 		self.chap = 10
 		self.chap_font_size = _default_hymal_chap_font_size
 		
+		
+#def ppt_gradient_fill(shp):
+#	shp.gradient()
+#	shp.gradient_angle = 0
+#	gsLst = shp.gradient_stops._gsLst
+#	new_gs = deepcopy(gsLst[0])
+#	gsLst.append(new_gs)
+#	
+#	gs = shp.gradient_stops
+#	
+#	color = [(0,0,0), (64,64,64), (217,217,217), (255,255,255)]
+#	posit = [0, 55, 88, 100]
+#	trans = [0, 27, 70, 100]
+#	brigt = [0, 25, -13, 100]
+#	
+#	print(len(gs))
+#	i = 0
+#	for c, p, t, b in zip(color, posit, trans, brigt):
+#		#gs[i].color = pptx.dml.color.RGBColor(c[0],c[1],c[2])
+#		gs[i].position = p/100.0
+#		i += 1
+#		#gs[i].transparency = t
+#		#gs[i].brightness = b	
+		
 class QLivePPT(QtGui.QWidget):
 	def __init__(self):
 		super(QLivePPT, self).__init__()
@@ -463,8 +505,8 @@ class QLivePPT(QtGui.QWidget):
 		self.txtppt_tab = QtGui.QWidget()
 		self.tabs.addTab(self.ppt_tab, _ppttab_text)
 		self.tabs.addTab(self.slide_tab, _slidetab_text)
-		self.tabs.addTab(self.hymal_tab, _hymaltab_text)
 		self.tabs.addTab(self.fx_tab, _fxtab_text)
+		self.tabs.addTab(self.hymal_tab, _hymaltab_text)
 		self.tabs.addTab(self.txtppt_tab, _txtppt_text)
 		self.tabs.addTab(self.message_tab, _messagetab_text)
 		
@@ -663,7 +705,7 @@ class QLivePPT(QtGui.QWidget):
 		font_col = ppt_color(int(ft_col.group(1)), int(ft_col.group(2)), int(ft_col.group(3)))
 
 		for in_text in line_text:
-			dest_slide = self.add_empty_slide(dest_ppt, blank_slide_layout, self.ppt_slide.back_col)
+			dest_slide = self.add_empty_slide(dest_ppt, blank_slide_layout, back_col)
 			txt_box = self.add_textbox(dest_slide, sx, sy, wid, hgt)
 			txt_f = txt_box.text_frame
 			self.set_textbox(txt_f, MSO_AUTO_SIZE.NONE, MSO_ANCHOR.MIDDLE, MSO_ANCHOR.MIDDLE)
@@ -999,6 +1041,7 @@ class QLivePPT(QtGui.QWidget):
 		text_layout.addWidget(QtGui.QLabel("Textbox(x)"), 0,0)
 		self.text_sx = QtGui.QLineEdit("%f"%self.ppt_textbox.sx)
 		self.text_sx.setSizePolicy(QtGui.QSizePolicy.Ignored, QtGui.QSizePolicy.Preferred)
+		#self.text_sx.setFixedWidth(100)
 		text_layout.addWidget(self.text_sx, 0, 1)
 		text_layout.addWidget(QtGui.QLabel("inch"), 0,2)
 
@@ -1025,7 +1068,7 @@ class QLivePPT(QtGui.QWidget):
 		text_layout.addWidget(QtGui.QLabel("Align"))
 		self.choose_text_align = QtGui.QComboBox()
 		self.choose_text_align.addItems(t_align)
-		self.choose_text_align.setCurrentIndex(0) # center
+		self.choose_text_align.setCurrentIndex(_default_text_align_index) # center
 		text_layout.addWidget(self.choose_text_align)
 		
 		font_layout = QtGui.QGridLayout()
@@ -1073,7 +1116,36 @@ class QLivePPT(QtGui.QWidget):
 		self.word_wrap.setChecked(self.ppt_textbox.word_wrap)
 		self.word_wrap.stateChanged.connect(self.word_wrap_state_changed)
 		font_layout.addWidget(self.word_wrap,4, 1)
-
+		
+		self.text_box_solid_fill = QtGui.QCheckBox("Solid Fill")
+		self.text_box_grndt_fill = QtGui.QCheckBox("Grdnt Fill")
+		self.text_box_grndt_fill.setChecked(True)
+		font_layout.addWidget(self.text_box_solid_fill,3, 2)
+		font_layout.addWidget(self.text_box_grndt_fill,4, 2)
+	
+		margin_layout  = QtGui.QVBoxLayout()
+		margin_layout1 = QtGui.QHBoxLayout()
+		margin_layout2 = QtGui.QHBoxLayout()
+		
+		margin_layout1.addWidget(QtGui.QLabel('L/R Margin'))
+		self.text_box_lmargin = QtGui.QLineEdit('%f'%self.ppt_textbox.left_margin)
+		self.text_box_rmargin = QtGui.QLineEdit('%f'%self.ppt_textbox.right_margin)
+		self.text_box_lmargin.setFixedWidth(90)
+		self.text_box_rmargin.setFixedWidth(90)
+		margin_layout1.addWidget(self.text_box_lmargin)
+		margin_layout1.addWidget(self.text_box_rmargin)
+		
+		margin_layout2.addWidget(QtGui.QLabel('T/B Margin'))
+		self.text_box_tmargin = QtGui.QLineEdit('%f'%self.ppt_textbox.top_margin)
+		self.text_box_bmargin = QtGui.QLineEdit('%f'%self.ppt_textbox.bottom_margin)
+		self.text_box_tmargin.setFixedWidth(90)
+		self.text_box_bmargin.setFixedWidth(90)
+		margin_layout2.addWidget(self.text_box_tmargin)
+		margin_layout2.addWidget(self.text_box_bmargin)
+		
+		margin_layout.addLayout(margin_layout1)
+		margin_layout.addLayout(margin_layout2)
+	
 		menu_layout = QtGui.QHBoxLayout()
 		self.slide_menu_init_btn = QtGui.QPushButton('Init')
 		self.slide_menu_apply_btn = QtGui.QPushButton('Apply')
@@ -1090,6 +1162,7 @@ class QLivePPT(QtGui.QWidget):
 		layout.addRow(slide_layout2)
 		layout.addRow(text_layout)
 		layout.addRow(font_layout)
+		layout.addRow(margin_layout)
 		layout.addRow(menu_layout)
 		self.slide_tab.setLayout(layout)
 		self.global_message.appendPlainText('... Slide Tab UI created')
@@ -1136,7 +1209,12 @@ class QLivePPT(QtGui.QWidget):
 		self.ppt_textbox.font_col = ppt_color(c2[0], c2[1], c2[2])
 		self.ppt_textbox.font_size = _default_font_size
 		self.ppt_textbox.font_bold = True
-		self.ppt_textbox.align = 0 # center
+		self.ppt_textbox.align = _default_text_align_index # center(0), left(4)
+		
+		self.ppt_textbox.left_margin  = _default_textbox_left_margin
+		self.ppt_textbox.top_margin   = _default_textbox_top_margin
+		self.ppt_textbox.right_margin = _default_textbox_right_margin
+		self.ppt_textbox.bottom_margin= _default_textbox_bottom_margin
 		
 		self.slide_back_col.setText("%03d|%03d|%03d"%(c1[0], c1[1], c1[2]))
 		self.custom_slide_size.setChecked(False)
@@ -1179,6 +1257,11 @@ class QLivePPT(QtGui.QWidget):
 		self.ppt_textbox.font_bold = self.textbox_font_bold.isChecked()
 		self.ppt_textbox.word_wrap = self.word_wrap.isChecked()
 		self.ppt_textbox.align = self.choose_text_align.currentIndex()
+		
+		self.ppt_textbox.left_margin  = float(self.text_box_lmargin.text())
+		self.ppt_textbox.top_margin   = float(self.text_box_tmargin.text())
+		self.ppt_textbox.right_margin = float(self.text_box_rmargin.text())
+		self.ppt_textbox.bottom_margin= float(self.text_box_bmargin.text())
 
 		self.global_message.appendPlainText('Slide\n%s\n%s\n%s'%(
 		_message_separator,str(self.ppt_slide), _message_separator))
@@ -1886,16 +1969,7 @@ class QLivePPT(QtGui.QWidget):
 					#print('p list: ', p_list)
 					
 					np_list = len(p_list)
-					
-					# 8/12/20 Find Line Tabulation (Unicode 0x000b)
-					#for i1, p1 in enumerate(p_list):
-					#	if p1.find(VT):
-					#		p2 = p1.split(VT)
-					#		print('found, split: ', p2)
-					#		p_list.pop(i1)
-					#		for i2, p3 in enumerate(p2):
-					#			p_list.insert(i1+i2, p3.replace(VT, ''))
-			
+
 					for j in range(0, np_list, npg):
 						if npg > 1 and (np_list-j) < npg: break
 						dest_slide = self.add_empty_slide(dest_ppt, blank_slide_layout, self.ppt_slide.back_col)
@@ -1905,33 +1979,25 @@ class QLivePPT(QtGui.QWidget):
 												   self.ppt_textbox.wid,
 												   self.ppt_textbox.hgt)
 						txt_f = txt_box.text_frame
-						self.set_textbox(txt_f, MSO_AUTO_SIZE.NONE, MSO_ANCHOR.BOTTOM, MSO_ANCHOR.MIDDLE)
+						self.set_textbox(txt_f, 
+						                 MSO_AUTO_SIZE.NONE, 
+										 MSO_ANCHOR.MIDDLE, 
+										 MSO_ANCHOR.MIDDLE,
+										 self.ppt_textbox.left_margin,
+										 self.ppt_textbox.top_margin,
+										 self.ppt_textbox.right_margin,
+										 self.ppt_textbox.bottom_margin)
 		
 						k_list = []
 						for k in range(npg):
 							k_list.append(p_list[j+k])
 							
 						if self.ppt_textbox.word_wrap:
-							for w in k_list:
-								p = txt_f.add_paragraph()
-								p.text = w
-								#print('p.text:', p.text)
-								self.set_paragraph(p, 
-									get_texalign(self.ppt_textbox.align),
-									self.ppt_textbox.font_name,
-									self.ppt_textbox.font_size,
-									self.ppt_textbox.font_col,
-									self.ppt_textbox.font_bold)
-						else:	
-							p = txt_f.add_paragraph()
-							p.text = ' '.join(k_list)
-							#print('p.text:', p.text)
-							self.set_paragraph(p,
-									get_texalign(self.ppt_textbox.align),
-									self.ppt_textbox.font_name,
-									self.ppt_textbox.font_size,
-									self.ppt_textbox.font_col,
-									self.ppt_textbox.font_bold)
+							self.add_paragraph(txt_f, k_list[0], True)
+							for w in k_list[1:]:
+								self.add_paragraph(txt_f, w)
+						else:
+							self.add_paragraph(txt_f, ' '.join(k_list), True)
 
 					if npg == 1: continue
 					left_over = np_list%npg
@@ -1944,32 +2010,25 @@ class QLivePPT(QtGui.QWidget):
 												   self.ppt_textbox.wid,
 												   self.ppt_textbox.hgt)
 						txt_f = txt_box.text_frame
-						self.set_textbox(txt_f,MSO_AUTO_SIZE.NONE, MSO_ANCHOR.BOTTOM, MSO_ANCHOR.MIDDLE)
+						self.set_textbox(txt_f,MSO_AUTO_SIZE.NONE, 
+						                       MSO_ANCHOR.MIDDLE, 
+											   MSO_ANCHOR.MIDDLE,
+											   self.ppt_textbox.left_margin,
+											   self.ppt_textbox.top_margin,
+											   self.ppt_textbox.right_margin,
+											   self.ppt_textbox.bottom_margin
+											   )
 						k_list = []
-						l = j-npg
-						#print(j,l)
+						#l = j-npg
 						for k in range(left_over):
-							#k_list.append(p_list[l+k])
 							k_list.append(p_list[j+k])
+							
 						if self.ppt_textbox.word_wrap:
-							for w in k_list:
-								p = txt_f.add_paragraph()
-								p.text = w
-								self.set_paragraph(p, 
-									get_texalign(self.ppt_textbox.align),
-									self.ppt_textbox.font_name,
-									self.ppt_textbox.font_size,
-									self.ppt_textbox.font_col,
-									self.ppt_textbox.font_bold)
+							self.add_paragraph(txt_f, k_list[0], True)
+							for w in k_list[1:]:
+								self.add_paragraph(txt_f, w)
 						else:
-							p = txt_f.add_paragraph()
-							p.text = ' '.join(k_list)
-							self.set_paragraph(p, 
-									get_texalign(self.ppt_textbox.align),
-									self.ppt_textbox.font_name,
-									self.ppt_textbox.font_size,
-									self.ppt_textbox.font_col,
-									self.ppt_textbox.font_bold)
+							self.add_paragraph(txt_f, ' '.join(k_list), True)
 			self.add_empty_slide(dest_ppt, blank_slide_layout, self.ppt_slide.back_col)
 		try:
 			dest_ppt.save(sfn)
@@ -1978,7 +2037,10 @@ class QLivePPT(QtGui.QWidget):
 			self.global_message.appendPlainText('... Fail: %s'%str(e))
 			return
 		QtGui.QMessageBox.question(QtGui.QWidget(), 'Completed!', sfn, QtGui.QMessageBox.Yes)
-		self.global_message.appendPlainText('Dest: %s\n... Create Subtitle PPT: success\n'%save_file)
+		self.global_message.appendPlainText('Dest: %s\n%s\n... Create Subtitle PPT: success\n'%(save_file, str(self.ppt_textbox)))
+		
+		if self.text_box_grndt_fill.isChecked():
+			self.gradient_fill(sfn)
 
 	def add_textbox(self, ds, sx, sy, wid, hgt):
 		return ds.shapes.add_textbox(\
@@ -1988,12 +2050,29 @@ class QLivePPT(QtGui.QWidget):
 			pptx.util.Inches(hgt)
 		)
 		
+	def add_paragraph(self, tf, txt, first=False):
+		if first:
+			p = tf.paragraphs[0]
+		else:
+			p = tf.add_paragraph()
+			
+		p.text = txt
+		self.set_paragraph(p, get_texalign(self.ppt_textbox.align),
+							self.ppt_textbox.font_name,
+							self.ppt_textbox.font_size,
+							self.ppt_textbox.font_col,
+							self.ppt_textbox.font_bold)
+		
 	# slide(az,va,ha): MSO_AUTO_SIZE.NONE, MSO_ANCHOR.BOTTOM, MSO_ANCHOR.MIDDLE
 	# hymal(az,va,ha): MSO_AUTO_SIZE.NONE, MSO_ANCHOR.BOTTOM, MSO_ANCHOR.LEFT
-	def set_textbox(self, tf, az, va, ha):
+	def set_textbox(self, tf, az, va, ha, lm, tm, rm, bm):
 		tf.auto_size = az
 		tf.vertical_anchor = va
 		tf.horizontal_anchor= ha
+		tf.margin_left   = pptx.util.Inches(lm)
+		tf.margin_top    = pptx.util.Inches(tm)
+		tf.margin_right  = pptx.util.Inches(rm)
+		tf.margin_bottom = pptx.util.Inches(bm)
 	
 	# slide(al,fn,fz,fc,bl) = PP_ALIGN.CENTER, 
 	#                         self.ppt_textbox.font_name,
@@ -2007,6 +2086,63 @@ class QLivePPT(QtGui.QWidget):
 		p.font.size = pptx.util.Pt(fz)
 		p.font.color.rgb = pptx.dml.color.RGBColor(fc.r, fc.g, fc.b)
 		p.font.bold = bl
+
+	'''
+	Public Sub gradient_fill()
+	Dim sld As Slide
+	Dim shp As Shape
+	
+	For Each sld In ActivePresentation.Slides
+		For Each shp In sld.Shapes
+			shp.Fill.Visible = msoCTrue
+			shp.Fill.GradientAngle = 0
+			shp.Fill.GradientStops.Insert RGB(0, 0, 0), 0, 0
+			shp.Fill.GradientStops.Insert RGB(64, 64, 64), 0.46, 0
+			shp.Fill.GradientStops.Insert RGB(217, 217, 217), 0.77, 0.7
+			shp.Fill.GradientStops.Insert RGB(255, 255, 255), 1, 1
+		Next shp
+	Next sld
+	End Sub
+	'''
+	# https://docs.microsoft.com/en-us/office/vba/api/powerpoint.fillformat.twocolorgradient
+	# https://docs.microsoft.com/en-us/office/vba/api/office.msogradientstyle
+	
+	def gradient_fill(self, sfn):
+	
+		try:
+			self.global_message.appendPlainText('... Gradient Fill: open PowerPoint')
+			Application = win32com.client.Dispatch("PowerPoint.Application")
+		except Exception as e:
+			QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', "%s"%str(e), 
+			QtGui.QMessageBox.Yes)
+			self.global_message.appendPlainText('... Fail: %s'%str(e))
+			return
+
+		try:
+			Presentation = Application.Presentations.Open(sfn)
+		except Exception as e:
+			QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', "%s"%str(e), 
+			QtGui.QMessageBox.Yes)
+			self.global_message.appendPlainText('... Fail: %s'%str(e))
+			return
+			
+		for i, sld in enumerate(Presentation.Slides):
+			for shp in sld.Shapes:
+				shp.Fill.Visible = True
+				shp.Fill.TwoColorGradient(2, 1)
+				shp.Fill.GradientStops[0].Color.RGB = RGB(0, 0 ,0 )
+				shp.Fill.GradientStops[1].Color.RGB = RGB(255, 255 ,255)
+				
+				# work on Powerpoint VBS but not win32com
+				#shp.Fill.GradientAngle = 0
+				#shp.Fill.GradientStops.Insert(RGB(0  , 0  , 0  ), 0   , 0  )
+				#shp.Fill.GradientStops.Insert(RGB(64 , 64 , 64 ), 0.46, 0  )
+				#shp.Fill.GradientStops.Insert(RGB(217, 217, 217), 0.77, 0.7)
+				#shp.Fill.GradientStops.Insert(RGB(255, 255, 255), 1   , 1  )
+			
+		Presentation.Save()
+		self.global_message.appendPlainText('... Gradient Fill: success\n')
+		Application.Quit()
 
 def main():
 	app = QtGui.QApplication(sys.argv)
