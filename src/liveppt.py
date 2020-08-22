@@ -160,7 +160,7 @@ _default_textbox_top_margin  = 0.05
 _default_textbox_right_margin = 0.1
 _default_textbox_bottom_margin = 0.05
 
-_default_solid_fill_color = ppt_color(220,220,220)
+_default_solid_fill_color = ppt_color(100,100,100)
 _default_gradient_fill_color1 = ppt_color(0,0,0)
 _default_gradient_fill_color2 = ppt_color(155,155,155)
 
@@ -1034,11 +1034,14 @@ class QLivePPT(QtGui.QWidget):
 		self.choose_slide_size.addItems(_slide_size_type)
 		self.choose_slide_size.setCurrentIndex(self.ppt_slide.size_index)
 		self.choose_slide_size.currentIndexChanged.connect(self.set_custom_slide_size)
-
+		#self.choose_slide_size.setFixedWidth(50)
+		
 		self.custom_slide_wid = QtGui.QLineEdit()
 		self.custom_slide_hgt = QtGui.QLineEdit()
 		self.custom_slide_wid.setSizePolicy(QtGui.QSizePolicy.Ignored, QtGui.QSizePolicy.Preferred)
 		self.custom_slide_hgt.setSizePolicy(QtGui.QSizePolicy.Ignored, QtGui.QSizePolicy.Preferred)
+		#self.custom_slide_wid.setFixedWidth(50)
+		#self.custom_slide_hgt.setFixedWidth(50)
 		self.custom_slide_wid.setEnabled(False)
 		self.custom_slide_hgt.setEnabled(False)
 		self.custom_slide_wid.setText("%f"%self.ppt_slide.wid)
@@ -1123,7 +1126,8 @@ class QLivePPT(QtGui.QWidget):
 		font_layout.addWidget(self.deep_copy,3, 0)
 		
 		#font_layout.addWidget(QtGui.QLabel("Word wrap"),4, 0)
-		self.word_wrap = QtGui.QCheckBox("Word wrap")
+		#self.word_wrap = QtGui.QCheckBox("Word wrap")
+		self.word_wrap = QtGui.QCheckBox("Wrap")
 		self.word_wrap.setChecked(self.ppt_textbox.word_wrap)
 		self.word_wrap.stateChanged.connect(self.word_wrap_state_changed)
 		font_layout.addWidget(self.word_wrap,3, 2)
@@ -1812,14 +1816,22 @@ class QLivePPT(QtGui.QWidget):
 			Application = win32com.client.Dispatch("PowerPoint.Application")
 		except Exception as e:
 			QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', "%s"%str(e), QtGui.QMessageBox.Yes)
-			self.global_message.appendPlainText('... Fail: %s'%str(e))
+			self.global_message.appendPlainText('... Open Powerpoint Fail: %s'%str(e))
 			return
 			
 		for npr in range(nppt):
 			path = self.ppt_list_table.item(npr, 2).text()
 			#path = self.save_directory_path.text()
 			sorc = os.path.join(path, self.ppt_list_table.item(npr,0).text())
-			Presentation = Application.Presentations.Open(sorc)
+			try:
+				Presentation = Application.Presentations.Open(sorc)
+			except Exception as e:
+				res = QtGui.QMessageBox.question(QtGui.QWidget(), '', "Error:%s"%str(e),QtGui.QMessageBox.Cancel)
+				self.global_message.appendPlainText('... Open Fiel Fail: %s'%str(e))
+				#Presentation.Close()
+				Application.Quit()
+				return
+				
 			fname = os.path.splitext(self.ppt_list_table.item(npr,0).text())
 			dest = os.path.join(self.save_directory_path.text(), "%s.pptx"%(fname[0]))
 			try:
@@ -1983,6 +1995,7 @@ class QLivePPT(QtGui.QWidget):
 						run_list.append(run.text)
 					line_text = ''.join(run_list)
 					p_list.append(line_text)
+			else: return ''
 		txt = ''.join(p_list)
 		return txt
 
@@ -1996,6 +2009,18 @@ class QLivePPT(QtGui.QWidget):
 			self.publish_title.currentText(), pfix)
 		return save_file	
 		
+	# dp  : dest_ppt
+	# bsl : blank_slide_layout
+	# bc  : self.ppt_slide.back_col
+	
+	def insert_empty_slide(self, dp, bsl, bc):
+		pbx = self.ppt_textbox
+		dest_slide = self.add_empty_slide(dp, bsl, bc)
+		txt_box = self.add_textbox(dest_slide, pbx.sx, pbx.sy, pbx.wid,	pbx.hgt)
+		txt_f = txt_box.text_frame
+		self.set_textbox(txt_f, MSO_AUTO_SIZE.NONE, MSO_ANCHOR.MIDDLE, MSO_ANCHOR.MIDDLE,
+		pbx.left_margin, pbx.top_margin, pbx.right_margin, pbx.bottom_margin)
+	
 	def create_liveppt(self):
 		import copy
 		nppt = self.ppt_list_table.rowCount()
@@ -2030,24 +2055,12 @@ class QLivePPT(QtGui.QWidget):
 				dest_ppt = None
 				return
 
+			pbx = self.ppt_textbox
+			
 			for slide in src.slides:
 				in_text = self.slide_has_text(slide)
 				if in_text=='' and self.ppt_slide.deep_copy:
-					self.add_empty_slide(dest_ppt, blank_slide_layout, self.ppt_slide.back_col)
-					#txt_box = self.add_textbox(dest_slide,
-					#	                           self.ppt_textbox.sx,
-					#							   self.ppt_textbox.sy,
-					#							   self.ppt_textbox.wid,
-					#							   self.ppt_textbox.hgt)
-					#txt_f = txt_box.text_frame
-					#self.set_textbox(txt_f, 
-					#                 MSO_AUTO_SIZE.NONE, 
-					#				 MSO_ANCHOR.MIDDLE, 
-					#				 MSO_ANCHOR.MIDDLE,
-					#				 self.ppt_textbox.left_margin,
-					#				 self.ppt_textbox.top_margin,
-					#				 self.ppt_textbox.right_margin,
-					#				 self.ppt_textbox.bottom_margin)
+					self.insert_empty_slide(dest_ppt, blank_slide_layout, self.ppt_slide.back_col)
 					continue
 					
 				for shape in slide.shapes:
@@ -2140,7 +2153,8 @@ class QLivePPT(QtGui.QWidget):
 								self.add_paragraph(txt_f, w)
 						else:
 							self.add_paragraph(txt_f, ' '.join(k_list), True)
-			self.add_empty_slide(dest_ppt, blank_slide_layout, self.ppt_slide.back_col)
+			self.insert_empty_slide(dest_ppt, blank_slide_layout, self.ppt_slide.back_col)
+			
 		try:
 			dest_ppt.save(sfn)
 		except Exception as e:
