@@ -1114,27 +1114,32 @@ class QLivePPT(QtGui.QWidget):
 		font_layout.addWidget(QtGui.QLabel("Size"), 2,0)
 		self.textbox_font_size = QtGui.QLineEdit("%f"%self.ppt_textbox.font_size)
 		font_layout.addWidget(self.textbox_font_size, 2,1)
-		#font_layout.addWidget(QtGui.QLabel("Bold"),2,2)
-		self.textbox_font_bold = QtGui.QCheckBox("Bold")
-		self.textbox_font_bold.setChecked(True)
-		font_layout.addWidget(self.textbox_font_bold, 3,1)
-		
-		#font_layout.addWidget(QtGui.QLabel("Deep copy"),3, 0)
-		self.textbox_deep_copy = QtGui.QCheckBox("Deep Copy")
+
+		option_layout = QtGui.QHBoxLayout()
+
+		self.textbox_deep_copy = QtGui.QCheckBox("D.Copy")
 		self.textbox_deep_copy.setChecked(self.ppt_slide.deep_copy)
 		self.textbox_deep_copy.stateChanged.connect(self.textbox_deep_copy_state_changed)
-		font_layout.addWidget(self.textbox_deep_copy,3, 0)
+		option_layout.addWidget(self.textbox_deep_copy)
+		#font_layout.addWidget(self.textbox_deep_copy,3, 0)
 		
+		self.textbox_font_bold = QtGui.QCheckBox("Bold")
+		self.textbox_font_bold.setChecked(True)
+		#font_layout.addWidget(self.textbox_font_bold, 3,1)
+		option_layout.addWidget(self.textbox_font_bold)
+	
 		#font_layout.addWidget(QtGui.QLabel("Word wrap"),4, 0)
 		#self.textbox_word_wrap = QtGui.QCheckBox("Word wrap")
 		self.textbox_word_wrap = QtGui.QCheckBox("Wrap")
 		self.textbox_word_wrap.setChecked(self.ppt_textbox.word_wrap)
 		self.textbox_word_wrap.stateChanged.connect(self.textbox_word_wrap_state_changed)
-		font_layout.addWidget(self.textbox_word_wrap,3, 2)
+		#font_layout.addWidget(self.textbox_word_wrap,3, 2)
+		option_layout.addWidget(self.textbox_word_wrap)
 		
 		self.textbox_fill = QtGui.QCheckBox("Fill")
 		self.textbox_fill.setChecked(True)
-		font_layout.addWidget(self.textbox_fill,4,0)
+		#font_layout.addWidget(self.textbox_fill,4,0)
+		option_layout.addWidget(self.textbox_fill)
 		
 		self.textbox_fill_type = QtGui.QComboBox()
 		self.textbox_fill_type.addItems(["Solid", "Grad"])
@@ -1221,6 +1226,7 @@ class QLivePPT(QtGui.QWidget):
 		layout.addRow(slide_layout2)
 		layout.addRow(text_layout)
 		layout.addRow(font_layout)
+		layout.addRow(option_layout)
 		layout.addRow(margin_layout)
 		layout.addRow(menu_layout)
 		self.slide_tab.setLayout(layout)
@@ -1833,7 +1839,8 @@ class QLivePPT(QtGui.QWidget):
 			try:
 				Presentation = Application.Presentations.Open(sorc)
 			except Exception as e:
-				res = QtGui.QMessageBox.question(QtGui.QWidget(), '', "Error:%s"%str(e),QtGui.QMessageBox.Cancel)
+				res = QtGui.QMessageBox.question(QtGui.QWidget(), '', "Error:%s"%str(e),
+				QtGui.QMessageBox.Cancel)
 				self.global_message.appendPlainText('... Open Fiel Fail: %s'%str(e))
 				#Presentation.Close()
 				Application.Quit()
@@ -1883,13 +1890,16 @@ class QLivePPT(QtGui.QWidget):
 		
 	def get_save_directory_path(self):
 		startingDir = os.getcwd() 
-		path = QtGui.QFileDialog.getExistingDirectory(None, 'Save folder', startingDir, QtGui.QFileDialog.ShowDirsOnly)
+		path = QtGui.QFileDialog.getExistingDirectory(None, 'Save folder', startingDir, 
+		QtGui.QFileDialog.ShowDirsOnly)
 		if not path: return
 		self.save_directory_path.setText(path)
 
 	def open_ppt_file(self):
 		title = self.open_btn.text()
-		self.ppt_filenames = QtGui.QFileDialog.getOpenFileNames(self, title, directory=self.src_directory_path.text(), filter="PPTX (*.pptx);;PPT (*.ppt);;All files (*.*)")
+		self.ppt_filenames = QtGui.QFileDialog.getOpenFileNames(self, title, 
+		directory=self.src_directory_path.text(), 
+		filter="PPTX (*.pptx);;PPT (*.ppt);;All files (*.*)")
 		nppt = len(self.ppt_filenames)
 
 		if nppt: 
@@ -1898,7 +1908,8 @@ class QLivePPT(QtGui.QWidget):
 				self.clear_pptlist_table()
 				self.ppt_list_table.setRowCount(nppt)
 				for k in range(nppt):
-					fdate = datetime.datetime.fromtimestamp(os.path.getmtime(self.ppt_filenames[k])).strftime("%Y-%m-%d %H:%M:%S").split(' ')
+					fdate = datetime.datetime.fromtimestamp(os.path.\
+					getmtime(self.ppt_filenames[k])).strftime("%Y-%m-%d %H:%M:%S").split(' ')
 					fpath, fname = os.path.split(self.ppt_filenames[k])
 					try:
 						prs = pptx.Presentation(self.ppt_filenames[k])
@@ -1915,7 +1926,10 @@ class QLivePPT(QtGui.QWidget):
 		
 	def add_ppt_file(self):
 		title = self.add_btn.text()
-		files = QtGui.QFileDialog.getOpenFileNames(self, title, directory=self.src_directory_path.text(), filter="PPTX (*.pptx);;PPT (*.ppt);;All files (*.*)")
+		files = QtGui.QFileDialog.getOpenFileNames(self, title, 
+		directory=self.src_directory_path.text(), 
+		filter="PPTX (*.pptx);;PPT (*.ppt);;All files (*.*)")
+		
 		nppt = len(files)
 		format_error = False
 		if nppt:
@@ -1923,7 +1937,8 @@ class QLivePPT(QtGui.QWidget):
 			cur_row = self.ppt_list_table.rowCount()
 			for k in range(nppt):
 				j = k + cur_row
-				fdate = datetime.datetime.fromtimestamp(os.path.getmtime(files[k])).strftime("%Y-%m-%d %H:%M:%S").split(' ')
+				fdate = datetime.datetime.fromtimestamp(os.path.getmtime(files[k])).\
+				strftime("%Y-%m-%d %H:%M:%S").split(' ')
 				fpath, fname = os.path.split(files[k])
 				try:
 					prs = pptx.Presentation(self.ppt_filenames[k])
@@ -2077,7 +2092,6 @@ class QLivePPT(QtGui.QWidget):
 					for paragraph in shape.text_frame.paragraphs:
 						run_list = []
 						for run in paragraph.runs:
-							#print('run: ', run.text)
 							run_list.append(run.text)
 						line_text = ''.join(run_list)
 						
@@ -2148,7 +2162,8 @@ class QLivePPT(QtGui.QWidget):
 			self.global_message.appendPlainText('... Fail: %s'%str(e))
 			return
 		QtGui.QMessageBox.question(QtGui.QWidget(), 'Completed!', sfn, QtGui.QMessageBox.Yes)
-		self.global_message.appendPlainText('Dest: %s\n%s\n... Create Subtitle PPT: success\n'%(save_file, str(pbx)))
+		self.global_message.appendPlainText('Dest: %s\n%s\n... Create Subtitle PPT: success\n'%(
+		save_file, str(pbx)))
 		
 		if self.textbox_fill.isChecked():
 			ft = self.textbox_fill_type.currentIndex()
