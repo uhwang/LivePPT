@@ -13,6 +13,7 @@
 	08/15/20  Add dash, transprancy in Fx outline
 	08/21/20  Add Gradient fill in a text frame
 		      Add margin (L,T,R,B) of a text frame 
+	08/23/20  Rewrite the code
 	
 	Convert praise ppt to subtitle ppt for live streaming
 
@@ -134,55 +135,49 @@ _skip_hymal_info = re.compile('찬송가')
 _find_lyric_number = re.compile('\d\.')
 _find_rgb = re.compile("(\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})")
 
-#_default_txt_sx = 2.25
-#_default_txt_sy = 4.66
-#_default_txt_wid = 5.51
-#_default_txt_hgt = 0.4
-#_default_slide_bk_col = (0,32,96)
 _default_txt_sx = 0
 _default_txt_sy = 4.48
 _default_txt_wid = 10.0
 _default_txt_hgt = 1.15
-_default_slide_bk_col = (255,255,255)
-_default_font_col = (255,255,255)
+_default_slide_back_col = ppt_color(255,255,255)
+_default_font_col  = ppt_color(255,255,255)
 _default_font_size = 20.0 # point
 _default_font_name = "맑은고딕"
 _default_txt_nparagraph = 1
 _default_slide_size_index = 1
+
+_default_hymal_font_size        = 40.0
 _default_hymal_slide_size_index = 0
-_default_hymal_font_size = 40.0
-_default_hymal_chap_font_size = 22.0
-_default_outline_weight = 0.25
+_default_hymal_chap_font_size   = 22.0
+
+_default_outline_weight   = 0.25
 _default_text_align_index = 4
 
-_default_textbox_left_margin = 0.7
-_default_textbox_top_margin  = 0.05
-_default_textbox_right_margin = 0.1
+_default_textbox_left_margin   = 0.7
+_default_textbox_top_margin    = 0.05
+_default_textbox_right_margin  = 0.1
 _default_textbox_bottom_margin = 0.05
 
-_default_solid_fill_color = ppt_color(100,100,100)
+_default_solid_fill_color     = ppt_color(100,100,100)
 _default_gradient_fill_color1 = ppt_color(0,0,0)
 _default_gradient_fill_color2 = ppt_color(155,155,155)
 
 _liveppt_postfix = '-sub'
 _message_separator= '-'*15
 
-_color_black = (0,0,0)
-_color_white = (255,255,255)
-_color_red   = (255,0,0)
-_color_green = (0,255,0)
-_color_blue  = (0,0,255)
-_color_yellow= (255,255,0)
+_color_black = ppt_color(0,0,0)
+_color_white = ppt_color(255,255,255)
+_color_red   = ppt_color(255,0,0)
+_color_green = ppt_color(0,255,0)
+_color_blue  = ppt_color(0,0,255)
+_color_yellow= ppt_color(255,255,0)
 
-_ppttab_text   = "PPT"
-_slidetab_text = "Slide"
-_hymaltab_text = "Hymal"
-_txtppt_text = "TxtPPT"
-_fxtab_text    = "Fx"
+_ppttab_text     = "PPT"
+_slidetab_text   = "Slide"
+_hymaltab_text   = "Hymal"
+_txtppt_text     = "TxtPPT"
+_fxtab_text      = "Fx"
 _messagetab_text = "Message"
-
-#_SAVE_FOLDER_SLIDE = 0
-#_SAVE_FOLDER_HYMAL = 1
 
 _worship_type = ["주일예배", "수요예배", "새벽기도", 
                  "부흥회"  , "특별예베", "직접입력"]
@@ -206,9 +201,15 @@ def RGB(red, green, blue):
     assert 0 <= blue <=255
     return red + (green << 8) + (blue << 16)
 	
-def get_rgb(c, sp=':'):
-	c1 = c.split(sp)
-	return ppt_color(int(c1[0]),int(c1[1]),int(c1[2]))
+def get_rgb(c):
+	c1 = _find_rgb.search(c)
+	r = int(c1.group(1))
+	g = int(c1.group(2))
+	b = int(c1.group(3))
+	assert 0 <= r <=255    
+	assert 0 <= g <=255
+	assert 0 <= b <=255
+	return ppt_color(r, g, b)
 	
 def get_slide_size(t):
 	t1 = t.split(',')
@@ -350,7 +351,7 @@ class ppt_outlinetext_info:
 					   style=msoLine.msoLineSingle,
 					   weight=_default_outline_weight):
 		self.show = True
-		self.col = ppt_color(col[0], col[1], col[2])
+		self.col = col
 		self.style = style
 		self.dash = msoDash.msoLineSolid
 		self.transprancy = 0.0
@@ -406,6 +407,26 @@ class ppt_fx_info():
 		str(self.show_shadow),
 		str(self.shadow))
 		
+_TEXTBOX_SOLID_FILL = 0
+_TEXTBOX_GRADIENT_FILL = 1
+
+class ppt_textbox_fill_info:
+	def __init__(self):
+		self.show = True
+		self.fill_type = _TEXTBOX_SOLID_FILL
+		self.solid_col = _default_solid_fill_color
+		self.gradient_col1 = _default_gradient_fill_color1
+		self.gradient_col2 = _default_gradient_fill_color2
+		
+	def ftype(self): return "Solid" if self.fill_type is _TEXTBOX_SOLID_FILL else "Gradient"
+	def __str__(self):
+		return 'Fill  : %s\nType  : %s\nS.Col : %s\nG.Col1: %s\nG.Col2: %s'%(
+				str(self.show),
+				self.ftype(), 
+				str(self.solid_col), 
+				str(self.gradient_col1),
+				str(self.gradient_col2))
+		
 class ppt_textbox_info:
 	def __init__(self, sx=_default_txt_sx,
 	                   sy=_default_txt_sy,
@@ -416,31 +437,31 @@ class ppt_textbox_info:
 		self.sy            = float(sy)
 		self.wid           = float(wid)
 		self.hgt           = float(hgt)
-		self.left_margin   = _default_textbox_left_margin
-		self.top_margin    = _default_textbox_top_margin
-		self.right_margin  = _default_textbox_right_margin
-		self.bottom_margin = _default_textbox_bottom_margin
 		self.font_name     = _default_font_name
 		self.font_col      = ppt_color()
 		self.font_bold     = True
 		self.font_size     = font_size
 		self.word_wrap     = False
+		self.left_margin   = _default_textbox_left_margin
+		self.top_margin    = _default_textbox_top_margin
+		self.right_margin  = _default_textbox_right_margin
+		self.bottom_margin = _default_textbox_bottom_margin
+		self.fill          = ppt_textbox_fill_info()
 		self.align         = _default_text_align_index # center(0), LEFT(4)
 		self.fx            = ppt_fx_info()
 		
 	def __str__(self):
-		return 'Sx   : %2.4f\nSy   : %2.4f\nWid  : %2.4f\nHgt  : %2.4f\nFont : %s\nColor: %s\nSize : %2.4f\nWrap : %s\nAlign: %s\n** Margin**\nLeft  : %2.2f\nTop   : %2.2f\nRight : %2.2f\nBottom: %2.2f'%(
+		return 'Sx   : %2.4f\nSy   : %2.4f\nWid  : %2.4f\nHgt  : %2.4f\n\nFont : %s\nColor: %s\nSize : %2.4f\nWrap : %s\nAlign: %s\n\nLeft  : %2.2f\nTop   : %2.2f\nRight : %2.2f\nBottom: %2.2f\n\n%s'%(
 			   self.sx, self.sy, self.wid, self.hgt, self.font_name, 
 			   str(self.font_col), self.font_size, str(self.word_wrap), 
 			   get_texalign(self.align), self.left_margin, self.top_margin, 
-			   self.right_margin, self.bottom_margin)
+			   self.right_margin, self.bottom_margin, str(self.fill))
 		
 class ppt_slide_info:
 	def __init__(self, w=None,h=None):
 		if not w and not h:
 			w, h = get_slide_size(_slide_size_type[_default_slide_size_index])
-		c = _default_slide_bk_col
-		self.back_col = ppt_color(c[0], c[1], c[2])
+		self.back_col = _default_slide_back_col
 		self.wid = w
 		self.hgt = h
 		self.skip_image = True
@@ -460,30 +481,6 @@ class ppt_hymal_info(ppt_slide_info, ppt_textbox_info):
 		self.chap = 10
 		self.chap_font_size = _default_hymal_chap_font_size
 		self.back_col = ppt_color(0,32,96)
-		
-		
-#def ppt_gradient_fill(shp):
-#	shp.gradient()
-#	shp.gradient_angle = 0
-#	gsLst = shp.gradient_stops._gsLst
-#	new_gs = deepcopy(gsLst[0])
-#	gsLst.append(new_gs)
-#	
-#	gs = shp.gradient_stops
-#	
-#	color = [(0,0,0), (64,64,64), (217,217,217), (255,255,255)]
-#	posit = [0, 55, 88, 100]
-#	trans = [0, 27, 70, 100]
-#	brigt = [0, 25, -13, 100]
-#	
-#	print(len(gs))
-#	i = 0
-#	for c, p, t, b in zip(color, posit, trans, brigt):
-#		#gs[i].color = pptx.dml.color.RGBColor(c[0],c[1],c[2])
-#		gs[i].position = p/100.0
-#		i += 1
-#		#gs[i].transparency = t
-#		#gs[i].brightness = b	
 		
 class QLivePPT(QtGui.QWidget):
 	def __init__(self):
@@ -669,11 +666,19 @@ class QLivePPT(QtGui.QWidget):
 		for i, t in enumerate(text):
 			text[i] = t.strip()
 
-		#https://www.geeksforgeeks.org/python-split-list-into-lists-by-particular-value/
 		size = len(text) 
-		idx_list = [idx + 1 for idx, val in enumerate(text) if val == ''] 
-		line_text = [text[i:j] 
-		       for i, j in zip([0] + idx_list, idx_list + ([size] if idx_list[-1] != size else []))] 
+		if size is 1:
+			line_text = text
+		else:
+			#https://www.geeksforgeeks.org/python-split-list-into-lists-by-particular-value/
+			idx_list = [idx + 1 for idx, val in enumerate(text) if val == ''] 
+			line_text = [text[i:j] 
+			                for i, j in zip([0] + idx_list, 
+							                      idx_list + (
+												               [size] if idx_list[-1] != size else []
+															 )
+					                       )
+						] 
 			
 		fn = self.txtppt_fname.text()
 		if fn.endswith('.pptx'):
@@ -702,16 +707,9 @@ class QLivePPT(QtGui.QWidget):
 		hgt = float(self.hymal_info_table.item(4,1).text())
 		font_name = self.hymal_info_table.item(5,1).text()
 
-		col_str = self.hymal_info_table.item(8,1).text()
-		bk_col = _find_rgb.search(col_str)
-		back_col = ppt_color(int(bk_col.group(1)), 
-		                     int(bk_col.group(2)), 
-                             int(bk_col.group(3)))
-							 
-		col_str = self.hymal_info_table.item(6,1).text()
-		ft_col = _find_rgb.search(col_str)
+		back_col = get_rgb(self.hymal_info_table.item(8,1).text())
+		font_col  = get_rgb(self.hymal_info_table.item(6,1).text())
 		font_size = float(self.hymal_info_table.item(7,1).text())
-		font_col = ppt_color(int(ft_col.group(1)), int(ft_col.group(2)), int(ft_col.group(3)))
 
 		for in_text in line_text:
 			dest_slide = self.add_empty_slide(dest_ppt, blank_slide_layout, back_col)
@@ -735,7 +733,7 @@ class QLivePPT(QtGui.QWidget):
 			return
 			
 		self.global_message.appendPlainText('... Create TxtPPT: success\n')
-		QtGui.QMessageBox.question(QtGui.QWidget(), 'Completed!', sfn, QtGui.QMessageBox.Yes)
+		#QtGui.QMessageBox.question(QtGui.QWidget(), 'Completed!', sfn, QtGui.QMessageBox.Yes)
 				
 	def txtppt_tab_UI(self):
 		layout = QtGui.QFormLayout()
@@ -863,11 +861,27 @@ class QLivePPT(QtGui.QWidget):
 		self.hymal_convert_bth.clicked.connect(self.create_hymal_ppt)
 		run_layout.addWidget(self.hymal_convert_bth)
 
+		size_layout = QtGui.QHBoxLayout()
+		size_layout.addWidget(QtGui.QLabel('Slide Size'))
+		self.choose_hymal_slide_size = QtGui.QComboBox(self)
+		self.choose_hymal_slide_size.addItems(_slide_size_type)
+		self.choose_hymal_slide_size.setCurrentIndex(0)
+		self.choose_hymal_slide_size.currentIndexChanged.connect(self.set_hymal_slide_size)
+		size_layout.addWidget(self.choose_hymal_slide_size)
+		
 		layout.addRow(self.hymal_info_table)
+		layout.addRow(size_layout)
 		layout.addRow(publish_layout)
 		layout.addRow(run_layout)
 		self.hymal_tab.setLayout(layout)
 		self.global_message.appendPlainText('... Hymal tab UI created')
+		
+	def set_hymal_slide_size(self):
+		w,h = get_slide_size(self.choose_hymal_slide_size.currentText())
+		self.ppt_hymal.wid = w
+		self.ppt_hymal.hgt = h
+		self.hymal_info_table.item(3,1).setText("%f"%w)
+		self.hymal_info_table.item(4,1).setText("%f"%h)
 		
 	def change_hymal_save_path(self):
 		startingDir = os.getcwd() 
@@ -907,14 +921,14 @@ class QLivePPT(QtGui.QWidget):
 			return
 			
 		col_str = self.hymal_info_table.item(8,1).text()
-		bk_col = _find_rgb.search(col_str)
+		bk_col = get_rgb(col_str)
 		if not bk_col:
 			QtGui.QMessageBox.question(QtGui.QWidget(), 'Invalid Back color', 
 			"Comma separated {}".format(col_str), QtGui.QMessageBox.Yes)
 			return
 
 		col_str = self.hymal_info_table.item(6,1).text()
-		ft_col = _find_rgb.search(col_str)
+		ft_col = get_rgb(col_str)
 		if not ft_col:
 			QtGui.QMessageBox.question(QtGui.QWidget(), 'Invalid Font color', 
 			"Comma separated {}".format(col_str), QtGui.QMessageBox.Yes)
@@ -941,13 +955,9 @@ class QLivePPT(QtGui.QWidget):
 		self.ppt_hymal.hgt = float(self.hymal_info_table.item(4,1).text())
 		self.ppt_hymal.font_name = self.hymal_info_table.item(5,1).text()
 		
-		self.ppt_hymal.back_col = ppt_color(int(bk_col.group(1)), 
-		                                        int(bk_col.group(2)), 
-												int(bk_col.group(3)))
+		self.ppt_hymal.back_col  = bk_col
 		self.ppt_hymal.font_size = float(self.hymal_info_table.item(7,1).text())
-		self.ppt_hymal.font_col = ppt_color(int(ft_col.group(1)), 
-		                                    int(ft_col.group(2)), 
-											int(ft_col.group(3)))
+		self.ppt_hymal.font_col  = ft_col
 		
 		dest_ppt = pptx.Presentation()
 		dest_ppt.slide_width = pptx.util.Inches(self.ppt_hymal.wid)
@@ -1005,20 +1015,16 @@ class QLivePPT(QtGui.QWidget):
 		layout = QtGui.QFormLayout()
 
 		background_layout  = QtGui.QHBoxLayout()
-		background_layout.addWidget(QtGui.QLabel('Background(RGB)')) 
-		self.slide_back_col = QtGui.QLineEdit()
-		self.slide_back_col.setInputMask('999|999|999;-')
-		font = QtGui.QFont("Courier",11,True)
-		fm = QtGui.QFontMetrics(font)
-		self.slide_back_col.setFixedSize(fm.width("888888888888"), fm.height())
-		self.slide_back_col.setFont(font)
-		col = self.ppt_slide.back_col
-		self.slide_back_col.setText("%03d|%03d|%03d"%(col.r, col.g, col.b))
-		
+		background_layout.addWidget(QtGui.QLabel('Back(RGB)')) 
+		self.slide_back_col = QtGui.QLineEdit(str(self.ppt_slide.back_col))
+		#self.slide_back_col.setSizePolicy(QtGui.QSizePolicy.Ignored, QtGui.QSizePolicy.Preferred)
+		self.slide_back_col.setFixedWidth(100)
+
 		self.back_col_picker = QtGui.QPushButton('', self)
 		self.back_col_picker.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_color_picker.table)))
 		self.back_col_picker.setIconSize(QtCore.QSize(16,16))
-		self.connect(self.back_col_picker, QtCore.SIGNAL('clicked()'), self.pick_bk_color)
+		#self.back_col_picker.setFixedSize(20,20)
+		self.connect(self.back_col_picker, QtCore.SIGNAL('clicked()'), self.pick_slide_back_color)
 		background_layout.addWidget(self.slide_back_col)
 		background_layout.addWidget(self.back_col_picker)
 		
@@ -1053,28 +1059,28 @@ class QLivePPT(QtGui.QWidget):
 		
 		text_layout = QtGui.QGridLayout()
 		text_layout.addWidget(QtGui.QLabel("Textbox(x)"), 0,0)
-		self.text_sx = QtGui.QLineEdit("%f"%self.ppt_textbox.sx)
-		self.text_sx.setSizePolicy(QtGui.QSizePolicy.Ignored, QtGui.QSizePolicy.Preferred)
-		#self.text_sx.setFixedWidth(100)
-		text_layout.addWidget(self.text_sx, 0, 1)
+		self.textbox_sx = QtGui.QLineEdit("%f"%self.ppt_textbox.sx)
+		self.textbox_sx.setSizePolicy(QtGui.QSizePolicy.Ignored, QtGui.QSizePolicy.Preferred)
+		#self.textbox_sx.setFixedWidth(100)
+		text_layout.addWidget(self.textbox_sx, 0, 1)
 		text_layout.addWidget(QtGui.QLabel("inch"), 0,2)
 
 		text_layout.addWidget(QtGui.QLabel("Textbox(y)"), 1,0)
-		self.text_sy = QtGui.QLineEdit("%f"%self.ppt_textbox.sy)
-		self.text_sy.setSizePolicy(QtGui.QSizePolicy.Ignored, QtGui.QSizePolicy.Preferred)
-		text_layout.addWidget(self.text_sy, 1, 1)
+		self.textbox_sy = QtGui.QLineEdit("%f"%self.ppt_textbox.sy)
+		self.textbox_sy.setSizePolicy(QtGui.QSizePolicy.Ignored, QtGui.QSizePolicy.Preferred)
+		text_layout.addWidget(self.textbox_sy, 1, 1)
 		text_layout.addWidget(QtGui.QLabel("inch"), 1,2)
 		
 		text_layout.addWidget(QtGui.QLabel("Textbox(wid)"), 2,0)
-		self.text_wid = QtGui.QLineEdit("%f"%self.ppt_textbox.wid)
-		self.text_wid.setSizePolicy(QtGui.QSizePolicy.Ignored, QtGui.QSizePolicy.Preferred)
-		text_layout.addWidget(self.text_wid, 2, 1)
+		self.textbox_wid = QtGui.QLineEdit("%f"%self.ppt_textbox.wid)
+		self.textbox_wid.setSizePolicy(QtGui.QSizePolicy.Ignored, QtGui.QSizePolicy.Preferred)
+		text_layout.addWidget(self.textbox_wid, 2, 1)
 		text_layout.addWidget(QtGui.QLabel("inch"), 2,2)
 
 		text_layout.addWidget(QtGui.QLabel("Textbox(hgt)"), 3,0)
-		self.text_hgt = QtGui.QLineEdit("%f"%self.ppt_textbox.hgt)
-		self.text_hgt.setSizePolicy(QtGui.QSizePolicy.Ignored, QtGui.QSizePolicy.Preferred)
-		text_layout.addWidget(self.text_hgt, 3, 1)
+		self.textbox_hgt = QtGui.QLineEdit("%f"%self.ppt_textbox.hgt)
+		self.textbox_hgt.setSizePolicy(QtGui.QSizePolicy.Ignored, QtGui.QSizePolicy.Preferred)
+		text_layout.addWidget(self.textbox_hgt, 3, 1)
 		text_layout.addWidget(QtGui.QLabel("inch"), 3,2)
 
 		t_align = ["CENTER", "DISTRIBUTE","JUSTIFY",
@@ -1087,14 +1093,8 @@ class QLivePPT(QtGui.QWidget):
 		
 		font_layout = QtGui.QGridLayout()
 		font_layout.addWidget(QtGui.QLabel("Font(RGB)"), 0, 0)
-		self.textbox_font_col = QtGui.QLineEdit()
-		self.textbox_font_col.setInputMask('999|999|999;-')
-		font = QtGui.QFont("Courier",11,True)
-		fm = QtGui.QFontMetrics(font)
-		self.textbox_font_col.setFixedSize(fm.width("888888888888"), fm.height())
-		self.textbox_font_col.setFont(font)
-		col = self.ppt_textbox.font_col
-		self.textbox_font_col.setText("%03d|%03d|%03d"%(col.r, col.g, col.b))
+		self.textbox_font_col = QtGui.QLineEdit(str(self.ppt_textbox.font_col))
+		#self.textbox_font_col.setFixedWidth(100)
 		self.textbox_font_col_picker = QtGui.QPushButton('', self)
 		self.textbox_font_col_picker.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_color_picker.table)))
 		self.textbox_font_col_picker.setIconSize(QtCore.QSize(16,16))
@@ -1120,17 +1120,17 @@ class QLivePPT(QtGui.QWidget):
 		font_layout.addWidget(self.textbox_font_bold, 3,1)
 		
 		#font_layout.addWidget(QtGui.QLabel("Deep copy"),3, 0)
-		self.deep_copy = QtGui.QCheckBox("Deep Copy")
-		self.deep_copy.setChecked(self.ppt_slide.deep_copy)
-		self.deep_copy.stateChanged.connect(self.deep_copy_state_changed)
-		font_layout.addWidget(self.deep_copy,3, 0)
+		self.textbox_deep_copy = QtGui.QCheckBox("Deep Copy")
+		self.textbox_deep_copy.setChecked(self.ppt_slide.deep_copy)
+		self.textbox_deep_copy.stateChanged.connect(self.textbox_deep_copy_state_changed)
+		font_layout.addWidget(self.textbox_deep_copy,3, 0)
 		
 		#font_layout.addWidget(QtGui.QLabel("Word wrap"),4, 0)
-		#self.word_wrap = QtGui.QCheckBox("Word wrap")
-		self.word_wrap = QtGui.QCheckBox("Wrap")
-		self.word_wrap.setChecked(self.ppt_textbox.word_wrap)
-		self.word_wrap.stateChanged.connect(self.word_wrap_state_changed)
-		font_layout.addWidget(self.word_wrap,3, 2)
+		#self.textbox_word_wrap = QtGui.QCheckBox("Word wrap")
+		self.textbox_word_wrap = QtGui.QCheckBox("Wrap")
+		self.textbox_word_wrap.setChecked(self.ppt_textbox.word_wrap)
+		self.textbox_word_wrap.stateChanged.connect(self.textbox_word_wrap_state_changed)
+		font_layout.addWidget(self.textbox_word_wrap,3, 2)
 		
 		self.textbox_fill = QtGui.QCheckBox("Fill")
 		self.textbox_fill.setChecked(True)
@@ -1251,22 +1251,22 @@ class QLivePPT(QtGui.QWidget):
 		col = QtGui.QColorDialog.getColor()
 		if col.isValid():
 			r,g,b,a = col.getRgb()
-			#self.ppt_slide.slide_back_col = ppt_color(r,g,b)
 			self.textbox_solid_color.setText("%03d,%03d,%03d"%(r, g, b))
+			self.ppt_textbox.fill.solid_col = ppt_color(r,g,b)
 
 	def pick_textbox_fill_gradient_color1(self):
 		col = QtGui.QColorDialog.getColor()
 		if col.isValid():
 			r,g,b,a = col.getRgb()
-			#self.ppt_slide.slide_back_col = ppt_color(r,g,b)
 			self.textbox_gradient_color1.setText("%03d,%03d,%03d"%(r, g, b))
+			self.ppt_textbox.fill.gradient_col1 = ppt_color(r,g,b)
 
 	def pick_textbox_fill_gradient_color2(self):
 		col = QtGui.QColorDialog.getColor()
 		if col.isValid():
 			r,g,b,a = col.getRgb()
-			#self.ppt_slide.slide_back_col = ppt_color(r,g,b)
 			self.textbox_gradient_color2.setText("%03d,%03d,%03d"%(r, g, b))
+			self.ppt_textbox.fill.gradient_col2 = ppt_color(r,g,b)
 
 	def text_outline_state_changed(self):
 		if self.text_outline.isChecked():
@@ -1274,14 +1274,14 @@ class QLivePPT(QtGui.QWidget):
 		else:
 			self.ppt_textbox.fx.show_outline = False
 			
-	def word_wrap_state_changed(self):
-		if self.deep_copy.isChecked():
+	def textbox_word_wrap_state_changed(self):
+		if self.textbox_deep_copy.isChecked():
 			self.ppt_textbox.word_wrap = True
 		else:
 			self.ppt_textbox.word_wrap = False
 	
-	def deep_copy_state_changed(self):
-		if self.deep_copy.isChecked():
+	def textbox_deep_copy_state_changed(self):
+		if self.textbox_deep_copy.isChecked():
 			self.ppt_slide.deep_copy = True
 		else:
 			self.ppt_slide.deep_copy = False
@@ -1295,29 +1295,35 @@ class QLivePPT(QtGui.QWidget):
 			
 	def set_init_slide_info(self):
 		self.global_message.appendPlainText('... Init Slide Info\n')
-		c1 = _default_slide_bk_col
-		c2 = _default_font_col
+
 		w, h = get_slide_size(_slide_size_type[_default_slide_size_index])
-		self.ppt_slide.back_col = ppt_color(c1[0],c1[1],c1[2])
-		self.ppt_slide.size_index = _default_slide_size_index
-		self.ppt_slide.wid = w
-		self.ppt_slide.hgt = h
-		self.ppt_textbox.sx  = _default_txt_sx
-		self.ppt_textbox.sy  = _default_txt_sy
-		self.ppt_textbox.wid = _default_txt_wid
-		self.ppt_textbox.hgt = _default_txt_hgt
+		self.ppt_slide.back_col    = _default_slide_back_col
+		self.ppt_slide.size_index  = _default_slide_size_index
+		self.ppt_slide.wid         = w
+		self.ppt_slide.hgt         = h
+		self.ppt_textbox.sx        = _default_txt_sx
+		self.ppt_textbox.sy        = _default_txt_sy
+		self.ppt_textbox.wid       = _default_txt_wid
+		self.ppt_textbox.hgt       = _default_txt_hgt
 		self.ppt_textbox.font_name = _default_font_name
-		self.ppt_textbox.font_col = ppt_color(c2[0], c2[1], c2[2])
+		self.ppt_textbox.font_col  = _default_font_col
 		self.ppt_textbox.font_size = _default_font_size
 		self.ppt_textbox.font_bold = True
-		self.ppt_textbox.align = _default_text_align_index # center(0), left(4)
+		self.ppt_textbox.align     = _default_text_align_index # center(0), left(4)
+		self.ppt_textbox.word_wrap = False
 		
 		self.ppt_textbox.left_margin  = _default_textbox_left_margin
 		self.ppt_textbox.top_margin   = _default_textbox_top_margin
 		self.ppt_textbox.right_margin = _default_textbox_right_margin
 		self.ppt_textbox.bottom_margin= _default_textbox_bottom_margin
 		
-		self.slide_back_col.setText("%03d|%03d|%03d"%(c1[0], c1[1], c1[2]))
+		self.ppt_textbox.fill.show = True
+		self.ppt_textbox.fill.type = _TEXTBOX_SOLID_FILL
+		self.ppt_textbox.fill.solid_col     = _default_solid_fill_color
+		self.ppt_textbox.fill.gradient_col1 = _default_gradient_fill_color1
+		self.ppt_textbox.fill.gradient_col2 = _default_gradient_fill_color2
+		
+		self.slide_back_col.setText("%s"%(_default_slide_back_col))
 		self.custom_slide_size.setChecked(False)
 		self.choose_slide_size.setCurrentIndex(_default_slide_size_index)
 		self.custom_slide_wid.setEnabled(False)
@@ -1325,19 +1331,22 @@ class QLivePPT(QtGui.QWidget):
 		self.custom_slide_wid.setText("%f"%w)
 		self.custom_slide_hgt.setText("%f"%h)
 		self.custom_slide_size.setChecked(False)
-		self.text_sx .setText("%f"%_default_txt_sx)
-		self.text_sy .setText("%f"%_default_txt_sy)
-		self.text_wid.setText("%f"%_default_txt_wid)
-		self.text_hgt.setText("%f"%_default_txt_hgt)
-		self.choose_text_aligh.setCurrentIndex(self.ppt_textbox.align) 
+		self.textbox_sx .setText("%f"%_default_txt_sx)
+		self.textbox_sy .setText("%f"%_default_txt_sy)
+		self.textbox_wid.setText("%f"%_default_txt_wid)
+		self.textbox_hgt.setText("%f"%_default_txt_hgt)
+		self.choose_text_align.setCurrentIndex(self.ppt_textbox.align) 
 		self.textbox_font_name.setText(_default_font_name)
-		self.textbox_font_col.setText("%03d|%03d|%03d"%(c2[0], c2[1], c2[2]))
+		self.textbox_font_col.setText("%s"%(str(_default_font_col)))
 		self.textbox_font_size.setText("%f"%_default_font_size)
 		self.textbox_font_bold.setChecked(True)
+		self.textbox_word_wrap.setChecked(False)
+		self.textbox_fill.setChecked(True)
+		self.textbox_fill_type.setCurrentIndex(0)
 		
 	def apply_current_slide_info(self):
 		self.global_message.appendPlainText("... Apply Slide Info")
-		self.ppt_slide.back_col = get_rgb(self.slide_back_col.text(), '|')
+		self.ppt_slide.back_col = get_rgb(self.slide_back_col.text())
 		
 		if self.custom_slide_size.isChecked():
 			self.ppt_slide.wid = float(self.custom_slide_wid.text())
@@ -1347,44 +1356,48 @@ class QLivePPT(QtGui.QWidget):
 			self.ppt_slide.wid = w
 			self.ppt_slide.hgt = h
 			
-		self.ppt_textbox.sx  = float(self.text_sx .text())
-		self.ppt_textbox.sy  = float(self.text_sy .text())
-		self.ppt_textbox.wid = float(self.text_wid.text())
-		self.ppt_textbox.hgt = float(self.text_hgt.text())
+		self.ppt_textbox.sx  = float(self.textbox_sx .text())
+		self.ppt_textbox.sy  = float(self.textbox_sy .text())
+		self.ppt_textbox.wid = float(self.textbox_wid.text())
+		self.ppt_textbox.hgt = float(self.textbox_hgt.text())
 
 		self.ppt_textbox.font_name = self.textbox_font_name.text()
-		self.ppt_textbox.font_col = get_rgb(self.textbox_font_col.text(), '|')
+		self.ppt_textbox.font_col  = get_rgb(self.textbox_font_col.text())
 		self.ppt_textbox.font_size = float(self.textbox_font_size.text())
 		self.ppt_textbox.font_bold = self.textbox_font_bold.isChecked()
-		self.ppt_textbox.word_wrap = self.word_wrap.isChecked()
-		self.ppt_textbox.align = self.choose_text_align.currentIndex()
+		self.ppt_textbox.fill.show = self.textbox_fill.isChecked()
+		self.ppt_textbox.fill.type = self.textbox_fill_type.currentIndex()
+		self.ppt_textbox.fill.solid_col     = get_rgb(self.textbox_solid_color.text())
+		self.ppt_textbox.fill.gradient_col1 = get_rgb(self.textbox_gradient_color1.text())
+		self.ppt_textbox.fill.gradient_col2 = get_rgb(self.textbox_gradient_color2.text())
+		self.ppt_textbox.word_wrap = self.textbox_word_wrap.isChecked()
+		self.ppt_textbox.align     = self.choose_text_align.currentIndex()
 		
 		self.ppt_textbox.left_margin  = float(self.text_box_lmargin.text())
 		self.ppt_textbox.top_margin   = float(self.text_box_tmargin.text())
 		self.ppt_textbox.right_margin = float(self.text_box_rmargin.text())
 		self.ppt_textbox.bottom_margin= float(self.text_box_bmargin.text())
 
-		self.global_message.appendPlainText('Slide\n%s\n%s\n%s'%(
-		_message_separator,str(self.ppt_slide), _message_separator))
-		self.global_message.appendPlainText('Textbox\n%s\n%s\n%s'%(
-		_message_separator,str(self.ppt_textbox), _message_separator))
+		self.global_message.appendPlainText('Slide\n%s\n%s\n%s\nTextbox\n%s\n%s\n%s'%(
+		_message_separator,	str(self.ppt_slide)  , _message_separator,
+		_message_separator,	str(self.ppt_textbox), _message_separator))
 		
 	def save_current_slide_info(self):
 		return
 	
-	def pick_bk_color(self):
+	def pick_slide_back_color(self):
 		col = QtGui.QColorDialog.getColor()
 		if col.isValid():
 			r,g,b,a = col.getRgb()
 			self.ppt_slide.slide_back_col = ppt_color(r,g,b)
-			self.slide_back_col.setText("%03d|%03d|%03d"%(r, g, b))
+			self.slide_back_col.setText("%03d,%03d,%03d"%(r, g, b))
 
 	def pick_font_color(self):
 		col = QtGui.QColorDialog.getColor()
 		if col.isValid():
 			r,g,b,a = col.getRgb()
 			self.ppt_textbox.font_col = ppt_color(r,g,b)
-			self.textbox_font_col.setText("%03d|%03d|%03d"%(r, g, b))
+			self.textbox_font_col.setText("%03d,%03d,%03d"%(r, g, b))
 		
 	def pick_font(self):
 		font, valid = QtGui.QFontDialog.getFont()
@@ -1406,6 +1419,11 @@ class QLivePPT(QtGui.QWidget):
 		w,h = get_slide_size(str(self.choose_slide_size.currentText()))
 		self.custom_slide_wid.setText("%f"%w)
 		self.custom_slide_hgt.setText("%f"%h)
+		
+		# textbox sx : not change
+		# textbox hgt: not change
+		self.textbox_sy.setText('%f'%(h-float(self.textbox_hgt.text())))
+		self.textbox_wid.setText('%f'%w)
 		
 	def ppt_tab_UI(self):
 		layout = QtGui.QFormLayout()
@@ -1646,16 +1664,6 @@ class QLivePPT(QtGui.QWidget):
 			self.global_message.appendPlainText('... Fail: %s'%str(e))
 			return
 
-		#shd = QShadowInfo(self.ppt_shadow)
-		#if shd.exec_() == 1:
-		#	st, ox, oy, bl, tr = shd.get_shadow_info()
-		#	self.ppt_shadow.Style = st+1
-		#	self.ppt_shadow.OffsetX = ox
-		#	self.ppt_shadow.OffsetY = oy
-		#	self.ppt_shadow.Blur = bl
-		#	self.ppt_shadow.Transparency = tr
-		#	self.global_message.appendPlainText(str(self.ppt_shadow))
-
 		self.ppt_textbox.fx.shadow.Style   = self.fx_shadow_style.currentIndex()+1
 		self.ppt_textbox.fx.shadow.OffsetX = int(self.fx_shadow_tbl.item(1,1).text())
 		self.ppt_textbox.fx.shadow.OffsetY = int(self.fx_shadow_tbl.item(2,1).text())
@@ -1727,8 +1735,7 @@ class QLivePPT(QtGui.QWidget):
 		
 		
 		h = self.fx_outline_show.isChecked()
-		rgb = _find_rgb.search(self.fx_outline_tbl.item(1,1).text())
-		c = ppt_color(int(rgb[1]),int(rgb[2]),int(rgb[3]))
+		c = get_rgb(self.fx_outline_tbl.item(1,1).text())
 		s = msoLine.index_to_style(self.fx_outline_style.currentIndex()) # style
 		d = self.fx_outline_dash_style.currentIndex()
 		t = float(self.fx_outline_tbl.item(4,1).text()) # transprancy
@@ -2074,49 +2081,37 @@ class QLivePPT(QtGui.QWidget):
 							run_list.append(run.text)
 						line_text = ''.join(run_list)
 						
-						#print('line text: ', line_text)
 						# Delete 1. 2. 3. ...
 						match = _find_lyric_number.search(line_text)
 						if match:
-							#print('match1: ', line_text)
 							line_text = _find_lyric_number.sub('', line_text)
 						
 						# skip hymal chapter info. ex: (찬송기 123장)
 						line_text = line_text.strip()
-						#print('match2: ', line_text)
 						match = _skip_hymal_info.search(line_text)
 						if match or not line_text: 
-							#print('match3: %s'%match)
 							continue
 						p_list.append(line_text)
-					
-					#print('p list: ', p_list)
 					
 					np_list = len(p_list)
 
 					for j in range(0, np_list, npg):
 						if npg > 1 and (np_list-j) < npg: break
 						dest_slide = self.add_empty_slide(dest_ppt, blank_slide_layout, self.ppt_slide.back_col)
-						txt_box = self.add_textbox(dest_slide,
-						                           self.ppt_textbox.sx,
-												   self.ppt_textbox.sy,
-												   self.ppt_textbox.wid,
-												   self.ppt_textbox.hgt)
+						txt_box = self.add_textbox(dest_slide, pbx.sx, pbx.sy, pbx.wid, pbx.hgt)
 						txt_f = txt_box.text_frame
 						self.set_textbox(txt_f, 
 						                 MSO_AUTO_SIZE.NONE, 
 										 MSO_ANCHOR.MIDDLE, 
 										 MSO_ANCHOR.MIDDLE,
-										 self.ppt_textbox.left_margin,
-										 self.ppt_textbox.top_margin,
-										 self.ppt_textbox.right_margin,
-										 self.ppt_textbox.bottom_margin)
+										 pbx.left_margin, pbx.top_margin,
+										 pbx.right_margin, pbx.bottom_margin)
 		
 						k_list = []
 						for k in range(npg):
 							k_list.append(p_list[j+k])
 							
-						if self.ppt_textbox.word_wrap:
+						if pbx.word_wrap:
 							self.add_paragraph(txt_f, k_list[0], True)
 							for w in k_list[1:]:
 								self.add_paragraph(txt_f, w)
@@ -2125,29 +2120,20 @@ class QLivePPT(QtGui.QWidget):
 
 					if npg == 1: continue
 					left_over = np_list%npg
-					#print('left over:',left_over)
 					if left_over:
 						dest_slide = self.add_empty_slide(dest_ppt, blank_slide_layout, self.ppt_slide.back_col)
-						txt_box = self.add_textbox(dest_slide,
-						                           self.ppt_textbox.sx,
-												   self.ppt_textbox.sy,
-												   self.ppt_textbox.wid,
-												   self.ppt_textbox.hgt)
+						txt_box = self.add_textbox(dest_slide, pbx.sx, pbx.sy, pbx.wid, pbx.hgt)
 						txt_f = txt_box.text_frame
 						self.set_textbox(txt_f,MSO_AUTO_SIZE.NONE, 
 						                       MSO_ANCHOR.MIDDLE, 
 											   MSO_ANCHOR.MIDDLE,
-											   self.ppt_textbox.left_margin,
-											   self.ppt_textbox.top_margin,
-											   self.ppt_textbox.right_margin,
-											   self.ppt_textbox.bottom_margin
-											   )
+											   pbx.left_margin, pbx.top_margin,
+											   pbx.right_margin, pbx.bottom_margi)
 						k_list = []
-						#l = j-npg
 						for k in range(left_over):
 							k_list.append(p_list[j+k])
 							
-						if self.ppt_textbox.word_wrap:
+						if pbx.word_wrap:
 							self.add_paragraph(txt_f, k_list[0], True)
 							for w in k_list[1:]:
 								self.add_paragraph(txt_f, w)
@@ -2162,14 +2148,14 @@ class QLivePPT(QtGui.QWidget):
 			self.global_message.appendPlainText('... Fail: %s'%str(e))
 			return
 		QtGui.QMessageBox.question(QtGui.QWidget(), 'Completed!', sfn, QtGui.QMessageBox.Yes)
-		self.global_message.appendPlainText('Dest: %s\n%s\n... Create Subtitle PPT: success\n'%(save_file, str(self.ppt_textbox)))
+		self.global_message.appendPlainText('Dest: %s\n%s\n... Create Subtitle PPT: success\n'%(save_file, str(pbx)))
 		
 		if self.textbox_fill.isChecked():
-			# gradient, 1
-			self.fill_textbox(sfn, bool(self.textbox_fill_type.currentIndex()))
-		else:
-			# solid, 0
-			self.fill_textbox(sfn, bool(self.textbox_fill_type.currentIndex()))
+			ft = self.textbox_fill_type.currentIndex()
+			if ft is _TEXTBOX_GRADIENT_FILL:
+				self.fill_textbox(sfn, bool(ft))
+			else:
+				self.fill_textbox(sfn, bool(ft))
 
 	def add_textbox(self, ds, sx, sy, wid, hgt):
 		return ds.shapes.add_textbox(\
@@ -2256,23 +2242,20 @@ class QLivePPT(QtGui.QWidget):
 			return
 			
 		self.global_message.appendPlainText('Type: %s'%('Gradient' if gradient else 'Solid'))
-		s = _find_rgb.search(self.textbox_solid_color.text())
-		sr, sg, sb = int(s.group(1)), int(s.group(2)), int(s.group(3))
-		g1 = _find_rgb.search(self.textbox_gradient_color1.text())
-		g2 = _find_rgb.search(self.textbox_gradient_color2.text())
-		g1r, g1g, g1b = int(g1.group(1)), int(g1.group(2)), int(g1.group(3))
-		g2r, g2g, g2b = int(g2.group(1)), int(g2.group(2)), int(g2.group(3))
+		sc = get_rgb(self.textbox_solid_color.text())
+		g1 = get_rgb(self.textbox_gradient_color1.text())
+		g2 = get_rgb(self.textbox_gradient_color2.text())
 		
-		self.global_message.appendPlainText('S.Col : %d,%d,%d\nG.Col1: %d,%d,%d\nG.Col2: %d,%d,%d'%(sr,sg,sb, g1r, g1g, g1b, g2r, g2g, g2b))
+		self.global_message.appendPlainText('S.Col : %s\nG.Col1: %s\nG.Col2: %s'%(str(sc), str(g1), str(g2)))
 		for i, sld in enumerate(Presentation.Slides):
 			for shp in sld.Shapes:
 				shp.Fill.Visible = True
 				if gradient:
 					shp.Fill.TwoColorGradient(2, 1)
-					shp.Fill.GradientStops[0].Color.RGB = RGB(g1r, g1g ,g1b )
-					shp.Fill.GradientStops[1].Color.RGB = RGB(g2r, g2g ,g2b )
+					shp.Fill.GradientStops[0].Color.RGB = RGB(g1.r, g1.g ,g1.b )
+					shp.Fill.GradientStops[1].Color.RGB = RGB(g2.r, g2.g ,g2.b )
 				else:
-					shp.Fill.ForeColor.RGB = RGB(sr,sg,sb)
+					shp.Fill.ForeColor.RGB = RGB(sc.r,sc.g,sc.b)
 				
 				# work on Powerpoint VBS but not win32com
 				#shp.Fill.GradientAngle = 0
