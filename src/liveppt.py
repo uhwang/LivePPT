@@ -84,14 +84,11 @@
 import re
 import os
 import datetime
-from copy import deepcopy
 import pptx
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR, MSO_AUTO_SIZE
-from pptx.enum.dml import MSO_LINE, MSO_FILL
 import sys
-from PyQt4 import QtCore, QtGui, Qt
+from PyQt4 import QtCore, QtGui
 import win32com.client
-import time
 import msoLine
 import msoDash
 import msoShadow
@@ -100,12 +97,12 @@ import icon_file_add
 import icon_folder_open
 import icon_arrow_down    
 import icon_arrow_up     
-import icon_delete_all    
+#import icon_delete_all    
 import icon_delete        
 import icon_table_sort_asc  
 import icon_table_sort_desc 
 import icon_trash
-import icon_play
+#import icon_play
 import icon_convert
 import icon_color_picker
 import icon_font_picker
@@ -192,7 +189,7 @@ _pp_align = {"0": PP_ALIGN.CENTER,
 			 "7": PP_ALIGN.MIXED
 			 }
 			 
-def get_texalign(idx):
+def get_textalign(idx):
 	return _pp_align[str(idx)]
 	
 def RGB(red, green, blue):
@@ -454,7 +451,7 @@ class ppt_textbox_info:
 		return 'Sx   : %2.4f\nSy   : %2.4f\nWid  : %2.4f\nHgt  : %2.4f\n\nFont : %s\nColor: %s\nSize : %2.4f\nWrap : %s\nAlign: %s\n\nLeft  : %2.2f\nTop   : %2.2f\nRight : %2.2f\nBottom: %2.2f\n\n%s'%(
 			   self.sx, self.sy, self.wid, self.hgt, self.font_name, 
 			   str(self.font_col), self.font_size, str(self.word_wrap), 
-			   get_texalign(self.align), self.left_margin, self.top_margin, 
+			   get_textalign(self.align), self.left_margin, self.top_margin, 
 			   self.right_margin, self.bottom_margin, str(self.fill))
 		
 class ppt_slide_info:
@@ -667,7 +664,7 @@ class QLivePPT(QtGui.QWidget):
 			text[i] = t.strip()
 
 		size = len(text) 
-		if size is 1:
+		if size == 1:
 			line_text = text
 		else:
 			#https://www.geeksforgeeks.org/python-split-list-into-lists-by-particular-value/
@@ -1484,9 +1481,9 @@ class QLivePPT(QtGui.QWidget):
 		self.delete_all_btn.setIconSize(QtCore.QSize(16,16))
 		self.connect(self.delete_all_btn, QtCore.SIGNAL('clicked()'), self.delete_all_item)
 		
-		self.play = QtGui.QPushButton('', self)
-		self.play.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_play.table)))
-		self.play.setIconSize(QtCore.QSize(16,16))
+		#self.play = QtGui.QPushButton('', self)
+		#self.play.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_play.table)))
+		#self.play.setIconSize(QtCore.QSize(16,16))
 		
 		btn_layout = QtGui.QHBoxLayout()
 		btn_layout.addWidget(self.move_up_btn)
@@ -1495,7 +1492,7 @@ class QLivePPT(QtGui.QWidget):
 		btn_layout.addWidget(self.sort_dsnd_btn)
 		btn_layout.addWidget(self.delete_btn)
 		btn_layout.addWidget(self.delete_all_btn)
-		btn_layout.addWidget(self.play)
+		#btn_layout.addWidget(self.play)
 		
 		publish_layout = QtGui.QGridLayout()
 		publish_layout.addWidget(QtGui.QLabel('Date'), 1, 0) 
@@ -1577,7 +1574,7 @@ class QLivePPT(QtGui.QWidget):
 	def run_merge_ppt(self):
 		
 		nppt = self.ppt_list_table.rowCount()
-		if nppt is 0: return
+		if nppt == 0: return
 
 		try:
 			self.global_message.appendPlainText('... Merge PPT: open PowerPoint')
@@ -1642,14 +1639,14 @@ class QLivePPT(QtGui.QWidget):
 		
 	def create_shadow_text(self, sorce):
 		nppt = self.ppt_list_table.rowCount()
-		if nppt is 0: return
+		if nppt == 0: return
 		
 		res = QChooseFxSource()
 		if res.exec_() == 1:
 			src = res.get_source()
 		else: return
 		
-		if src is 0: # current file on the table
+		if src == 0: # current file on the table
 			sfn = os.path.join(self.ppt_list_table.item(0,2).text(),
                                self.ppt_list_table.item(0,0).text())
 		else: # fx source
@@ -1703,14 +1700,14 @@ class QLivePPT(QtGui.QWidget):
 	def create_outline_text(self, sorce):
 
 		nppt = self.ppt_list_table.rowCount()
-		if nppt is 0: return
+		if nppt == 0: return
 		
 		res = QChooseFxSource()
 		if res.exec_() == 1:
 			src = res.get_source()
 		else: return
 		
-		if src is 0: # current file on the table
+		if src == 0: # current file on the table
 			sfn = os.path.join(self.ppt_list_table.item(0,2).text(),
 			                   self.ppt_list_table.item(0,0).text())
 		else: # fx source
@@ -1764,7 +1761,7 @@ class QLivePPT(QtGui.QWidget):
         
 			try:
 				sld.Shapes[0].Select()
-			except Exception as e: # in case of an empty slide
+			except Exception: # in case of an empty slide
 				continue 
 				
 			fnt = Application.ActiveWindow.Selection.TextRange2.Font
@@ -1782,7 +1779,7 @@ class QLivePPT(QtGui.QWidget):
 			
 	def convert_ppt_to_image(self):
 		nppt = self.ppt_list_table.rowCount()
-		if nppt is 0: return
+		if nppt == 0: return
 
 		res = QImageResolution()
 		if res.exec_() == 1:
@@ -1822,7 +1819,7 @@ class QLivePPT(QtGui.QWidget):
 		
 	def convert_ppt_to_pptx(self):
 		nppt = self.ppt_list_table.rowCount()
-		if nppt is 0: return
+		if nppt == 0: return
 
 		try:
 			self.global_message.appendPlainText('... PPT to PPTX: open PowerPoint')
@@ -1834,7 +1831,6 @@ class QLivePPT(QtGui.QWidget):
 			
 		for npr in range(nppt):
 			path = self.ppt_list_table.item(npr, 2).text()
-			#path = self.save_directory_path.text()
 			sorc = os.path.join(path, self.ppt_list_table.item(npr,0).text())
 			try:
 				Presentation = Application.Presentations.Open(sorc)
@@ -1842,7 +1838,6 @@ class QLivePPT(QtGui.QWidget):
 				res = QtGui.QMessageBox.question(QtGui.QWidget(), '', "Error:%s"%str(e),
 				QtGui.QMessageBox.Cancel)
 				self.global_message.appendPlainText('... Open Fiel Fail: %s'%str(e))
-				#Presentation.Close()
 				Application.Quit()
 				return
 				
@@ -1873,7 +1868,6 @@ class QLivePPT(QtGui.QWidget):
 	def custom_worship_type(self):
 		cid = self.publish_title.currentIndex()
 		nwt = len(_worship_type)-1
-		cur_wt = self.publish_title.currentText()
 		
 		if cid == nwt:
 			txt, ok = QtGui.QInputDialog.getText(self, 'Custom Worship Type', "Enter")
@@ -1908,13 +1902,11 @@ class QLivePPT(QtGui.QWidget):
 				self.clear_pptlist_table()
 				self.ppt_list_table.setRowCount(nppt)
 				for k in range(nppt):
-					fdate = datetime.datetime.fromtimestamp(os.path.\
-					getmtime(self.ppt_filenames[k])).strftime("%Y-%m-%d %H:%M:%S").split(' ')
 					fpath, fname = os.path.split(self.ppt_filenames[k])
 					try:
 						prs = pptx.Presentation(self.ppt_filenames[k])
 						nslide = len(prs.slides)
-					except Exception as e:
+					except Exception:
 						nslide = 0
 						pass
 							
@@ -1931,14 +1923,10 @@ class QLivePPT(QtGui.QWidget):
 		filter="PPTX (*.pptx);;PPT (*.ppt);;All files (*.*)")
 		
 		nppt = len(files)
-		format_error = False
 		if nppt:
-			
 			cur_row = self.ppt_list_table.rowCount()
 			for k in range(nppt):
 				j = k + cur_row
-				fdate = datetime.datetime.fromtimestamp(os.path.getmtime(files[k])).\
-				strftime("%Y-%m-%d %H:%M:%S").split(' ')
 				fpath, fname = os.path.split(files[k])
 				try:
 					prs = pptx.Presentation(self.ppt_filenames[k])
@@ -2044,9 +2032,9 @@ class QLivePPT(QtGui.QWidget):
 		pbx.left_margin, pbx.top_margin, pbx.right_margin, pbx.bottom_margin)
 	
 	def create_liveppt(self):
-		import copy
+		#import copy
 		nppt = self.ppt_list_table.rowCount()
-		if nppt is 0: return
+		if nppt == 0: return
 
 		save_file = self.get_save_file()
 		sfn = os.path.join(self.save_directory_path.text(),save_file)
@@ -2187,7 +2175,7 @@ class QLivePPT(QtGui.QWidget):
 			p = tf.add_paragraph()
 			
 		p.text = txt
-		self.set_paragraph(p, get_texalign(self.ppt_textbox.align),
+		self.set_paragraph(p, get_textalign(self.ppt_textbox.align),
 							self.ppt_textbox.font_name,
 							self.ppt_textbox.font_size,
 							self.ppt_textbox.font_col,
@@ -2289,7 +2277,7 @@ def main():
 	#QtGui.QApplication.setStyle(QtGui.QStyleFactory.create(u'CDE'))
 	QtGui.QApplication.setStyle(QtGui.QStyleFactory.create(u'Plastique'))
 	#QtGui.QApplication.setStyle(QtGui.QStyleFactory.create(u'Cleanlooks'))
-	lppt= QLivePPT()
+	lppt = QLivePPT()
 	sys.exit(app.exec_())
 	
 if __name__ == '__main__':
