@@ -18,7 +18,7 @@ if sys.platform == "win32":
 build_exe_options = {"packages": ["os"], 
 					 #"includes": ["newhymal.hdb", "outline.bas"],
                      "excludes": ["numpy", "matplotlib", "tkinter"],
-					 'build_exe': 'LPPT'
+					 'build_exe': 'LivePPT'
 					 }
 
 exe = Executable("liveppt.py", base = base, icon='lppt.ico')
