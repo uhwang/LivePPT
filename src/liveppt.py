@@ -5,16 +5,17 @@
     LivePPT Ver 0.1
     
     08/07/20  Custom Image Resolution @ PPP to Image
-            Custom Shadow effect
+              Custom Shadow effect
     08/08/20  Separation of outline and shadow effect 
-            Each presentation opens a same file.
-            Add Text align
+              Each presentation opens a same file.
+              Add Text align
     08/13/20  Merge ppt files
     08/15/20  Add dash, transprancy in Fx outline
     08/21/20  Add Gradient fill in a text frame
-            Add margin (L,T,R,B) of a text frame 
+              Add margin (L,T,R,B) of a text frame 
     08/23/20  Rewrite the code
     09/30/20  Remove tabs
+    11/17/20  Add tooptip & Path copy button(src to save) 
 
     Convert praise ppt to subtitle ppt for live streaming
 
@@ -110,6 +111,7 @@ import icon_merge
 import icon_shadow
 import icon_outline
 import icon_liveppt
+import icon_copy_src_path
 
 class ppt_color:
     def __init__(self, r=255, g=255, b=255):
@@ -148,9 +150,9 @@ _default_hymal_chap_font_size = 22.0
 _default_outline_weight = 0.25
 _default_text_align_index = 0 # 4(Left) 0(Center)
 
-_default_textbox_left_margin = 0.0
+_default_textbox_left_margin = 0.01
 _default_textbox_top_margin = 0.05
-_default_textbox_right_margin = 0.1
+_default_textbox_right_margin = 0.01
 _default_textbox_bottom_margin = 0.05
 
 _default_solid_fill_color     = ppt_color(100, 100, 100)
@@ -174,7 +176,7 @@ _txtppt_text     = "TxtPPT"
 _fxtab_text      = "Fx"
 _messagetab_text = "Message"
 
-_worship_type = ["주일예배", "수요예배", "새벽기도", 
+_worship_type = ["주일예배", "수요예배", "금요성령", "새벽기도", 
                  "부흥회"  , "특별예베", "직접입력"]
 
 _pp_align = {"0": PP_ALIGN.CENTER, 
@@ -1515,6 +1517,13 @@ class QLivePPT(QtGui.QWidget):
         publish_layout.addWidget(QtGui.QLabel('Sorc'), 3, 0)
         self.src_directory_path  = QtGui.QLineEdit()
         publish_layout.addWidget(self.src_directory_path, 3, 1)		
+
+        self.copy_src_path_button = QtGui.QPushButton('', self)
+        self.copy_src_path_button.clicked.connect(self.copy_srcpath_to_dest)
+        self.copy_src_path_button.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_copy_src_path.table)))
+        self.copy_src_path_button.setIconSize(QtCore.QSize(16,16))
+        self.copy_src_path_button.setToolTip('Copy src path to dest')
+        publish_layout.addWidget(self.copy_src_path_button, 3, 2)
     
         publish_layout.addWidget(QtGui.QLabel('Dest'), 4, 0)
         self.save_directory_path  = QtGui.QLineEdit(os.getcwd())
@@ -1522,6 +1531,8 @@ class QLivePPT(QtGui.QWidget):
         self.save_directory_button.clicked.connect(self.get_save_directory_path)
         self.save_directory_button.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_folder_open.table)))
         self.save_directory_button.setIconSize(QtCore.QSize(16,16))
+        self.save_directory_button.setToolTip('save folder')
+        
         publish_layout.addWidget(self.save_directory_path, 4, 1)
         publish_layout.addWidget(self.save_directory_button, 4, 2)
         
@@ -1531,31 +1542,37 @@ class QLivePPT(QtGui.QWidget):
         self.run_convert.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_convert.table)))
         self.run_convert.setIconSize(QtCore.QSize(isz,isz))
         self.run_convert.clicked.connect(self.create_liveppt)
+        self.run_convert.setToolTip('Create Subtitle PPTX')
     
         self.outline_btn = QtGui.QPushButton('', self)
         self.outline_btn.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_outline.table)))
         self.outline_btn.setIconSize(QtCore.QSize(isz,isz))
         self.outline_btn.clicked.connect(self.create_outline_text)
+        self.outline_btn.setToolTip('Outline Effect on Subtitle')
     
         self.shadow_btn = QtGui.QPushButton('', self)
         self.shadow_btn.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_shadow.table)))
         self.shadow_btn.setIconSize(QtCore.QSize(isz,isz))
         self.shadow_btn.clicked.connect(self.create_shadow_text)
+        self.shadow_btn.setToolTip('Shadow Effect on Subtitle')
                 
         self.merge_btn = QtGui.QPushButton('', self)
         self.merge_btn.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_merge.table)))
         self.merge_btn.setIconSize(QtCore.QSize(isz,isz))
         self.merge_btn.clicked.connect(self.run_merge_ppt)
+        self.merge_btn.setToolTip('N/A')
         
         self.ppt_pptx_btn = QtGui.QPushButton('', self)
         self.ppt_pptx_btn.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_ppt_pptx.table)))
         self.ppt_pptx_btn.setIconSize(QtCore.QSize(isz,isz))
         self.ppt_pptx_btn.clicked.connect(self.convert_ppt_to_pptx)
+        self.ppt_pptx_btn.setToolTip('Convert PPT to PPTX')
     
         self.ppt_img_btn = QtGui.QPushButton('', self)
         self.ppt_img_btn.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_ppt_image.table)))
         self.ppt_img_btn.setIconSize(QtCore.QSize(isz,isz))
         self.ppt_img_btn.clicked.connect(self.convert_ppt_to_image)
+        self.ppt_img_btn.setToolTip('Save as Images')
         
         run_layout.addWidget(self.run_convert, 0, 0)
         run_layout.addWidget(self.outline_btn, 0, 1)
@@ -1572,6 +1589,9 @@ class QLivePPT(QtGui.QWidget):
         self.ppt_tab.setLayout(layout)
         self.global_message.appendPlainText('... PPT Tab UI created')
 
+    def copy_srcpath_to_dest(self):
+        self.save_directory_path.setText(self.src_directory_path.text())
+        
     def run_merge_ppt(self):
         
         nppt = self.ppt_list_table.rowCount()
@@ -1853,8 +1873,8 @@ class QLivePPT(QtGui.QWidget):
                     Presentation.Close()
                     Application.Quit()
                     return
-            Presentation.Close()
-        Application.Quit()
+            #Presentation.Close()
+            Application.Quit()
         self.global_message.appendPlainText("PPTX: %s"%dest)
         self.global_message.appendPlainText("... PPT to PPTX: success\n")
         QtGui.QMessageBox.question(QtGui.QWidget(), 'completed!', "%s"%dest, QtGui.QMessageBox.Yes)
