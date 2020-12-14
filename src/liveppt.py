@@ -16,6 +16,7 @@
     08/23/20  Rewrite the code
     09/30/20  Remove tabs
     11/17/20  Add tooptip & Path copy button(src to save) 
+    12/14/20  Add custom worship type dialogue
 
     Convert praise ppt to subtitle ppt for live streaming
 
@@ -112,6 +113,7 @@ import icon_shadow
 import icon_outline
 import icon_liveppt
 import icon_copy_src_path
+import icon_keyboard
 
 class ppt_color:
     def __init__(self, r=255, g=255, b=255):
@@ -213,6 +215,70 @@ def get_slide_size(t):
     t2 = t1[1][1:-1].split(':')
     return float(t2[0]), float(t2[1])
 
+class QUserWorshipType(QtGui.QDialog):
+    def __init__(self, lppt):
+        super(QUserWorshipType, self).__init__()
+        self.lppt = lppt
+        self.initUI()
+        
+    def initUI(self):
+        layout = QtGui.QFormLayout()
+        # Create an array of radio buttons
+        moods = [QtGui.QRadioButton("Current"), QtGui.QRadioButton("User")]
+
+
+        # Radio buttons usually are in a vertical layout   
+        source_layout = QtGui.QHBoxLayout()
+
+        # Create a button group for radio buttons
+        self.mood_button_group = QtGui.QButtonGroup()
+
+        for i in range(len(moods)):
+            # Add each radio button to the button layout
+            source_layout.addWidget(moods[i])
+            # Add each radio button to the button group & give it an ID of i
+            self.mood_button_group.addButton(moods[i], i)
+            # Connect each radio button to a method to run when it's clicked
+            self.connect(moods[i], QtCore.SIGNAL("clicked()"), self.radio_button_clicked)
+
+        # Set a radio button to be checked by default
+        moods[0].setChecked(True)   
+        
+        source_type_layout = QtGui.QVBoxLayout()
+        self.ppt_list = QtGui.QComboBox()
+        self.ppt_list.addItems(self.lppt.get_ppt_list())
+        self.user_input = QtGui.QLineEdit()
+        source_type_layout.addWidget(self.ppt_list)
+        source_type_layout.addWidget(self.user_input)
+        
+        button_layout = QtGui.QHBoxLayout()
+        self.ok = QtGui.QPushButton('OK')
+        self.ok.clicked.connect(self.accept)
+        button_layout.addWidget(self.ok)
+
+        self.no = QtGui.QPushButton('Cancel')
+        self.no.clicked.connect(self.reject)
+        button_layout.addWidget(self.no)
+
+        layout.addRow(source_layout)
+        layout.addRow(source_type_layout)
+        layout.addRow(button_layout)
+        self.setLayout(layout)
+        self.setWindowTitle('Custom Worship Type')
+        self.radio_button_clicked()
+        
+    def radio_button_clicked(self):
+        id = self.mood_button_group.checkedId()
+        if id == 0: # get output name from ppt files
+            self.ppt_list.setEnabled(True)
+            self.user_input.setEnabled(False)
+        elif id == 1: # get output name from user input
+            self.ppt_list.setEnabled(False)
+            self.user_input.setEnabled(True)
+    
+    def get_source(self):
+        return self.mood_button_group.checkedId()
+        
 class QShadowInfo(QtGui.QDialog):
     def __init__(self, shd):
         super(QShadowInfo, self).__init__()
@@ -1511,9 +1577,17 @@ class QLivePPT(QtGui.QWidget):
         publish_layout.addWidget(QtGui.QLabel('Name'), 2, 0) 
         self.publish_title = QtGui.QComboBox(self)
         self.publish_title.addItems(_worship_type)
-        self.publish_title.currentIndexChanged.connect(self.custom_worship_type)
+        #self.publish_title.currentIndexChanged.connect(self.custom_worship_type)
         publish_layout.addWidget(self.publish_title, 2, 1)
-    
+
+        self.user_input_btn = QtGui.QPushButton('', self)
+        self.user_input_btn.clicked.connect(self.set_custom_worship_type)
+        self.user_input_btn.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_keyboard.table)))
+        self.user_input_btn.setIconSize(QtCore.QSize(16,16))
+        self.user_input_btn.setToolTip('User worship type')
+        publish_layout.addWidget(self.user_input_btn, 2, 2)
+
+        
         publish_layout.addWidget(QtGui.QLabel('Sorc'), 3, 0)
         self.src_directory_path  = QtGui.QLineEdit()
         publish_layout.addWidget(self.src_directory_path, 3, 1)		
@@ -1589,6 +1663,31 @@ class QLivePPT(QtGui.QWidget):
         self.ppt_tab.setLayout(layout)
         self.global_message.appendPlainText('... PPT Tab UI created')
 
+    def get_ppt_list(self):
+        nppt = self.ppt_list_table.rowCount()
+        return [os.path.splitext(self.ppt_list_table.item(i,0).text())[0] 
+                for i in range(nppt)]
+        
+    def set_custom_worship_type(self):
+        if self.ppt_list_table.rowCount() is 0: return
+        
+        res = QUserWorshipType(self)
+        if res.exec_() is not 1:
+            return
+            
+        src = res.get_source()
+        
+        if src == 0: # current file on the table
+            fn = res.ppt_list.currentText()    
+        else: # fx source
+            fn = res.user_input.text()
+        
+        nwt = len(_worship_type)-1
+        self.publish_title.setEditable(True)
+        self.publish_title.setItemText(nwt, fn)
+        self.publish_title.setEditable(False)
+        self.publish_title.setCurrentIndex(nwt)
+        
     def copy_srcpath_to_dest(self):
         self.save_directory_path.setText(self.src_directory_path.text())
         
@@ -1873,8 +1972,8 @@ class QLivePPT(QtGui.QWidget):
                     Presentation.Close()
                     Application.Quit()
                     return
-            #Presentation.Close()
-            Application.Quit()
+            Presentation.Close()
+        Application.Quit()
         self.global_message.appendPlainText("PPTX: %s"%dest)
         self.global_message.appendPlainText("... PPT to PPTX: success\n")
         QtGui.QMessageBox.question(QtGui.QWidget(), 'completed!', "%s"%dest, QtGui.QMessageBox.Yes)
