@@ -17,6 +17,10 @@
     09/30/20  Remove tabs
     11/17/20  Add tooptip & Path copy button(src to save) 
     12/14/20  Add custom worship type dialogue
+    01/07/21  Add Responsive reading
+    01/09/21  Add Responsive reading in range(1-137)
+              Bug fix
+              Add Responsive reading #136               
 
     Convert praise ppt to subtitle ppt for live streaming
 
@@ -114,6 +118,10 @@ import icon_outline
 import icon_liveppt
 import icon_copy_src_path
 import icon_keyboard
+import icon_respread
+import icon_respread_sub
+import icon_clear
+import icon_restore
 
 class ppt_color:
     def __init__(self, r=255, g=255, b=255):
@@ -138,7 +146,7 @@ _default_txt_sx = 0
 _default_txt_sy = 4.48
 _default_txt_wid = 10.0
 _default_txt_hgt = 1.15
-_default_slide_back_col = ppt_color(255,255,255)
+_default_slide_back_col = ppt_color(0,32,96) #ppt_color(255,255,255)
 _default_font_col  = ppt_color(255,255,255)
 _default_font_size = 20.0 # point
 _default_font_name = "맑은고딕"
@@ -176,10 +184,11 @@ _slidetab_text   = "Slide"
 _hymaltab_text   = "Hymal"
 _txtppt_text     = "TxtPPT"
 _fxtab_text      = "Fx"
+_respread_text   = "RespRd"
 _messagetab_text = "Message"
 
 _worship_type = ["주일예배", "수요예배", "금요성령", "새벽기도", 
-                 "부흥회"  , "특별예베", "직접입력"]
+                 "부흥회", "부활절", "추수감사", "송구영신", "특별예베", "직접입력"]
 
 _pp_align = {"0": PP_ALIGN.CENTER, 
             "1": PP_ALIGN.DISTRIBUTE,
@@ -191,6 +200,28 @@ _pp_align = {"0": PP_ALIGN.CENTER,
             "7": PP_ALIGN.MIXED
             }
 
+_responsive_reading_file = 'respread.fmt'
+
+_responsive_reading_format_key = [
+'Slide', 'TextBox', 'Text', 'NewLine'
+]
+_responsive_reading_default_format = [
+        'Slide   | 10, 7.5',
+        'TextBox | 0.43, 0.92, 6.59, 9.57, 0:32:96',
+        'Text    | 맑은고딕, 30, 1, 255:255:255, Left',
+        'NewLine | 맑은고딕, 20',
+        'Text    | 맑은고딕, 20, 0, 255:255:255, Left',
+        'Text    | 맑은고딕, 28, 1, 255:255:255, Left',
+        'NewLine | 맑은고딕, 30',
+        'Text    | 맑은고딕, 20, 0, 255:255:255, Left',
+        'Text    | 맑은고딕, 44, 1, 255:255:0  , Left'
+    ]
+
+_responsive_reading_text_align = {
+    'Left'  : PP_ALIGN.LEFT,
+    'Right' : PP_ALIGN.RIGHT,
+    'Center': PP_ALIGN.CENTER,
+}    
 def get_textalign(idx):
     return _pp_align[str(idx)]
 
@@ -225,7 +256,6 @@ class QUserWorshipType(QtGui.QDialog):
         layout = QtGui.QFormLayout()
         # Create an array of radio buttons
         moods = [QtGui.QRadioButton("Current"), QtGui.QRadioButton("User")]
-
 
         # Radio buttons usually are in a vertical layout   
         source_layout = QtGui.QHBoxLayout()
@@ -538,6 +568,19 @@ class ppt_slide_info:
         return "Wid  : %2.4f\nHgt  : %2.4f\nColor: %s\nDCopy: %s"%(\
             self.wid,self.hgt,str(self.back_col),str(self.deep_copy))
 
+#class ppt_paragraph:
+#    def __init__(self):
+#        self.font = ''
+#        self.
+#class ppt_responsive_reading(ppt_slide_info, ppt_textbox_info):
+#    def __init__(self):
+#        w, h = get_slide_size(_slide_size_type[_default_hymal_slide_size_index])
+#        ppt_slide_info.__init__(self,w,h)
+#        ppt_textbox_info.__init__(self, 0,0,w,h,_default_hymal_font_size)
+#        
+#        self.title = ''
+#        self.title_
+
 # use max size: sx=0, sy=0, wid=max wid, hgt=max hgt
 class ppt_hymal_info(ppt_slide_info, ppt_textbox_info):
     def __init__(self):
@@ -570,6 +613,7 @@ class QLivePPT(QtGui.QWidget):
         self.slide_tab = QtGui.QWidget()
         self.hymal_tab = QtGui.QWidget()
         self.fx_tab = QtGui.QWidget()
+        self.respread_tab = QtGui.QWidget()
         self.message_tab = QtGui.QWidget()
         self.txtppt_tab = QtGui.QWidget()
         self.tabs.addTab(self.ppt_tab, _ppttab_text)
@@ -577,6 +621,7 @@ class QLivePPT(QtGui.QWidget):
         self.tabs.addTab(self.fx_tab, _fxtab_text)
         self.tabs.addTab(self.hymal_tab, _hymaltab_text)
         self.tabs.addTab(self.txtppt_tab, _txtppt_text)
+        self.tabs.addTab(self.respread_tab, _respread_text)
         self.tabs.addTab(self.message_tab, _messagetab_text)
 
         self.message_tab_UI()
@@ -585,6 +630,7 @@ class QLivePPT(QtGui.QWidget):
         self.hymal_tab_UI()
         self.fx_tab_UI()
         self.txtppt_tab_UI()
+        self.respreading_tab_UI()
         tab_layout.addWidget(self.tabs)
         self.form_layout.addRow(tab_layout)
         self.setLayout(self.form_layout)
@@ -593,6 +639,375 @@ class QLivePPT(QtGui.QWidget):
         self.setWindowIcon(QtGui.QIcon(QtGui.QPixmap(icon_liveppt.table)))
         self.show()
 
+        
+    '''
+    responsive reading format
+    text_box sx sy wid hgt
+    title font_name font_size bold color align wrap
+    newline font_size
+    text font_name font_size bold color align wrap
+    text font_name font_size bold color align wrap
+    newline font_size
+    text font_name font_size bold color align wrap
+    text font_name font_size bold color align wrap
+    '''
+    
+    def write_respread_format(self):
+        with open(_responsive_reading_file, "wt") as w:
+            for fm in _responsive_reading_default_format:
+                w.write('%s\n'%fm)
+                
+    def respreading_tab_UI(self):
+        layout = QtGui.QFormLayout()
+        lay1 = QtGui.QHBoxLayout()   
+        lay1.addWidget(QtGui.QLabel("R.Read Num"))
+        self.respread_num = QtGui.QLineEdit("1")
+        #self.respread_num.setValidator(QtGui.QIntValidator(1,137))
+        lay1.addWidget(self.respread_num)
+        
+        self.respread_format_tbl = QtGui.QTableWidget()
+        font = QtGui.QFont("Fixedsys",9,True)
+        self.respread_format_tbl.setFont(font)
+        self.respread_format_tbl.horizontalHeader().hide()
+        self.respread_format_tbl.verticalHeader().hide()
+        self.respread_format_tbl.setColumnCount(3)
+        self.respread_format_tbl.setHorizontalHeaderItem(0, QtGui.QTableWidgetItem("Item"))
+        self.respread_format_tbl.setHorizontalHeaderItem(1, QtGui.QTableWidgetItem("Data"))
+        self.respread_format_tbl.setHorizontalHeaderItem(2, QtGui.QTableWidgetItem("Change"))
+
+        header = self.respread_format_tbl.horizontalHeader()
+        header.setResizeMode(0, QtGui.QHeaderView.ResizeToContents)
+        header.setResizeMode(1, QtGui.QHeaderView.ResizeToContents)
+        header.setResizeMode(2, QtGui.QHeaderView.ResizeToContents)        
+        header.setResizeMode(1, QtGui.QHeaderView.Stretch)
+
+        self.restore_responsive_reading_format()
+        #info = ["TxtBox", "Title", "NewLine", "Text", "Text", "NewLine", "Text", "Text"]
+        #_responsive_reading_format_key
+        #self.respread_format_tbl.setRowCount(len(_responsive_reading_default_format))
+        #for ii, jj in enumerate(_responsive_reading_default_format):
+        #    item = QtGui.QTableWidgetItem(jj)
+        #    item.setFlags(QtCore.Qt.ItemIsEnabled)
+        #    fmt = _responsive_reading_default_format[ii].split('|')
+        #    self.respread_format_tbl.setItem(ii, 0, QtGui.QTableWidgetItem(fmt[0]))
+        #    self.respread_format_tbl.setItem(ii, 1, QtGui.QTableWidgetItem(fmt[1]))
+        
+        lay2 = QtGui.QHBoxLayout()
+        lay2.addWidget(QtGui.QLabel('Slide Size'))
+        self.choose_respread_slide_size = QtGui.QComboBox(self)
+        self.choose_respread_slide_size.addItems(_slide_size_type)
+        self.choose_respread_slide_size.setCurrentIndex(0)
+        self.choose_respread_slide_size.currentIndexChanged.connect(self.set_respread_slide_size)
+        lay2.addWidget(self.choose_respread_slide_size)
+        
+        lay3 = QtGui.QHBoxLayout()
+        lay3.addWidget(QtGui.QLabel('Dest'))
+        self.respread_dest_path  = QtGui.QLineEdit(os.getcwd())
+        self.respread_dest_path_btn = QtGui.QPushButton('', self)
+        self.respread_dest_path_btn.clicked.connect(self.get_respread_path)
+        self.respread_dest_path_btn.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_folder_open.table)))
+        self.respread_dest_path_btn.setIconSize(QtCore.QSize(16,16))
+        self.respread_dest_path_btn.setToolTip('Respread folder')
+        lay3.addWidget(self.respread_dest_path)
+        lay3.addWidget(self.respread_dest_path_btn)
+        
+        lay4 = QtGui.QHBoxLayout()
+        self.create_reapread = QtGui.QPushButton('', self)
+        self.create_reapread.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_respread.table)))
+        self.create_reapread.setIconSize(QtCore.QSize(24,24))
+        self.connect(self.create_reapread, QtCore.SIGNAL('clicked()'), self.create_responsive_reading)
+        
+        self.create_reapread_sub = QtGui.QPushButton('', self)
+        self.create_reapread_sub.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_respread_sub.table)))
+        self.create_reapread_sub.setIconSize(QtCore.QSize(24,24))
+        self.connect(self.create_reapread_sub, QtCore.SIGNAL('clicked()'), self.create_responsive_reading_subtitle)
+        
+        self.clear_reapread = QtGui.QPushButton('', self)
+        self.clear_reapread.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_restore.table)))
+        self.clear_reapread.setIconSize(QtCore.QSize(24,24))
+        self.connect(self.clear_reapread, QtCore.SIGNAL('clicked()'), self.restore_responsive_reading_format)
+        
+        lay4.addWidget(self.create_reapread)
+        lay4.addWidget(self.create_reapread_sub)
+        lay4.addWidget(self.clear_reapread)
+        
+        #self.respread_edit = QtGui.QPlainTextEdit()
+        #self.respread_edit.setFont(QtGui.QFont("Courier",9,True))
+        #policy = self.sizePolicy()
+        #policy.setVerticalStretch(1)
+        #self.respread_edit.setSizePolicy(policy)
+        
+        layout.addRow(lay1)
+        layout.addWidget(self.respread_format_tbl)
+        #layout.addRow(self.respread_edit)
+        layout.addRow(lay2)
+        layout.addRow(lay3)
+        layout.addRow(lay4)
+        self.respread_tab.setLayout(layout)
+    
+    def get_respread_path(self):
+        startingDir = os.getcwd() 
+        path = QtGui.QFileDialog.getExistingDirectory(None, 'Save folder', startingDir, 
+        QtGui.QFileDialog.ShowDirsOnly)
+        if not path: return
+        self.respread_dest_path.setText(path)
+        
+    def restore_responsive_reading_format(self):
+        #self.respread_edit.clear()
+        #responsive_reading_format_key
+        self.respread_format_tbl.setRowCount(len(_responsive_reading_default_format))
+        for ii, jj in enumerate(_responsive_reading_default_format):
+            item = QtGui.QTableWidgetItem(jj)
+            item.setFlags(QtCore.Qt.ItemIsEnabled)
+            fmt = _responsive_reading_default_format[ii].split('|')
+            self.respread_format_tbl.setItem(ii, 0, QtGui.QTableWidgetItem(fmt[0]))
+            self.respread_format_tbl.setItem(ii, 1, QtGui.QTableWidgetItem(fmt[1]))
+        
+    def set_respread_slide_size(self):
+        w,h = get_slide_size(self.choose_respread_slide_size.currentText())
+        self.respread_format_tbl.item(0,1).setText("%2.3f, %2.3f"%(w,h))
+
+    def check_respread_num_range(self, low, high):
+        return False if low > high or low < 1 or high > 137 else True
+        
+    def create_responsive_reading_subtitle(self):
+        import hymal
+        self.global_message.appendPlainText('... Create RespRead Sub')
+        try: 
+            num_text = self.respread_num.text()
+            if num_text.find('-') > 0:
+                num_range = num_text.split('-')
+                low, high = int(num_range[0]), int(num_range[1])
+            else:
+                low, high = int(num_text), int(num_text)
+        except Exception as e: 
+            QtGui.QMessageBox.question(QtGui.QWidget(), 'Invalid number', str(e),  QtGui.QMessageBox.Yes)
+            self.global_message.appendPlainText('Invalid number: %s'%num_text)
+            return
+                
+        if not self.check_respread_num_range(low, high):
+            QtGui.QMessageBox.question(QtGui.QWidget(), 'Invalid number range', str(e),  QtGui.QMessageBox.Yes)
+            self.global_message.appendPlainText('Invalid number range: %s'%num_text)
+            return
+        
+        skip_file_check = False
+        
+        for ir in range(low, high+1):
+            rfn = '교독문 %03d-sub.pptx'%ir
+            self.global_message.appendPlainText("--> %s"%rfn)
+            sfn = os.path.join(self.respread_dest_path.text(), rfn)
+            if skip_file_check and os.path.isfile(sfn):
+                ans = QtGui.QMessageBox.question(self, 'Continue?', 
+                        '%s already exist!'%sfn, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
+                if ans == QtGui.QMessageBox.No: return
+                else: os.remove(sfn)
+            else: 
+                try:
+                    os.remove(sfn)
+                except:
+                    pass
+                
+            _, rtext = hymal.get_responsive_reading_by_chapter(ir)
+            
+            rsize = self.respread_format_tbl.item(0,1).text().split(',')
+            rtext = rtext[0]
+            wid, hgt = float(rsize[0]), float(rsize[1])
+            pbx = self.ppt_textbox
+            dest_ppt = pptx.Presentation()
+            dest_ppt.slide_width = pptx.util.Inches(wid)
+            dest_ppt.slide_height = pptx.util.Inches(hgt)
+            blank_slide_layout = dest_ppt.slide_layouts[6]
+                            
+            for i, rt in enumerate(rtext):
+                dest_slide = self.add_empty_slide(dest_ppt, blank_slide_layout, _color_white)
+                txt_box = self.add_textbox(dest_slide, 0, hgt-pbx.hgt, wid, pbx.hgt)
+                #if self.textbox_fill.isChecked():
+                #    ft = self.textbox_fill_type.currentIndex()
+                #    if ft is _TEXTBOX_SOLID_FILL:
+                #        txt_box.fill.solid()
+                #        sc = get_rgb(self.textbox_solid_color.text())
+                #        txt_box.fill.fore_color.rgb = pptx.dml.color.RGBColor(sc.r, sc.g, sc.b)
+                    #else:
+                    #    txt_box.fill.gradient()
+                    #    txt_box.fill.gradient_angle = 0
+                    #    txt_box.fill.gradient_stops[0].position = 0.0
+                    #    txt_box.fill.gradient_stops[1].position = 1.0
+                    #    txt_box.fill.gradient_stops[0].color = 1.0
+                                      
+                txt_f = txt_box.text_frame
+                self.set_textbox(txt_f, 
+                                MSO_AUTO_SIZE.NONE, 
+                                MSO_ANCHOR.MIDDLE, 
+                                MSO_ANCHOR.MIDDLE,
+                                pbx.left_margin, pbx.top_margin,
+                                pbx.right_margin, pbx.bottom_margin)
+                self.add_paragraph(txt_f, re.sub('\(.+\)', '', rt).strip(), True)
+            
+            try:
+                dest_ppt.save(sfn)
+            except Exception as e:
+                QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', str(e), 
+                QtGui.QMessageBox.Yes)
+                self.global_message.appendPlainText('... Error: %s'%str(e))
+                dest_ppt = None
+                return
+                
+            if self.textbox_fill.isChecked():
+                ft = self.textbox_fill_type.currentIndex()
+                if ft is _TEXTBOX_GRADIENT_FILL:
+                    self.fill_textbox(sfn, bool(ft))
+            #else:
+            #    self.fill_textbox(sfn, bool(ft))
+                
+        QtGui.QMessageBox.question(QtGui.QWidget(), 'Success', sfn, QtGui.QMessageBox.Yes)
+        self.global_message.appendPlainText('... Create RespRead Sub: success\n')
+        
+    def set_respread_ppt_textbox(self, dest_slide, fmt):
+        w,h = get_slide_size(self.choose_respread_slide_size.currentText())
+        fmt_list = fmt.split(',')
+        sx = float(fmt_list[0])
+        sy = float(fmt_list[1])
+        bkc = get_rgb(fmt_list[4].replace(':',','))
+        txt_box = self.add_textbox(dest_slide, sx, sy, w-sx, h-sy)
+        txt_box.fill.solid()
+        txt_box.fill.fore_color.rgb = pptx.dml.color.RGBColor(bkc.r, bkc.g, bkc.b)
+        txt_f = txt_box.text_frame
+        self.set_textbox(txt_f, MSO_AUTO_SIZE.NONE, MSO_ANCHOR.TOP, 
+        MSO_ANCHOR.MIDDLE, 0, 0, 0, 0, True)
+        return txt_box
+            
+    # 맑은고딕, 30, True, 255:255:255, Left
+    def set_respread_ppt_text(self, txt_frame, txt, fmt):
+        fmt_list = fmt.split(',')
+        p = txt_frame.add_paragraph()
+        p.text = txt
+        self.set_paragraph(p, 
+                    _responsive_reading_text_align[fmt_list[4].strip()], 
+                    fmt_list[0], 
+                    float(fmt_list[1]),
+                    get_rgb(fmt_list[3].replace(':',',')),
+                    bool(int(fmt_list[2])))
+    
+    def set_respread_ppt_newline(self, txt_frame, fmt):
+        fmt_list = fmt.split(',')
+        p = txt_frame.add_paragraph()
+        p.text = ''
+        self.set_paragraph(p, 
+        _responsive_reading_text_align['Left'], 
+        fmt_list[0], float(fmt_list[1]), _color_white, False)
+        
+    def create_responsive_reading(self):
+        import hymal
+        self.global_message.appendPlainText('... Create RespRead')
+        
+        try: 
+            num_text = self.respread_num.text()
+            if num_text.find('-') > 0:
+                num_range = num_text.split('-')
+                low, high = int(num_range[0]), int(num_range[1])
+            else:
+                low, high = int(num_text), int(num_text)
+        except Exception as e: 
+            QtGui.QMessageBox.question(QtGui.QWidget(), 'Invalid number', str(e),  QtGui.QMessageBox.Yes)
+            self.global_message.appendPlainText('Invalid number: %s'%num_text)
+            return
+                
+        if not self.check_respread_num_range(low, high):
+            QtGui.QMessageBox.question(QtGui.QWidget(), 'Invalid number range', str(e),  QtGui.QMessageBox.Yes)
+            self.global_message.appendPlainText('Invalid number range: %d %d'%(low, high))
+            return
+            
+        #try: 
+        #    rnum = int(self.respread_num.text())
+        #except Exception as e: 
+        #    QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', "Invalid number", 
+        #    QtGui.QMessageBox.Yes)
+        #    self.global_message.appendPlainText('Invalid number: %s'%self.respread_num.text())
+        #    return
+        #sfn = os.path.join(self.respread_dest_path.text(), '교독문 %03d.pptx'%rnum)
+        #if os.path.isfile(sfn):
+        #    ans = QtGui.QMessageBox.question(self, 'Continue?', 
+        #            '%s already exist!'%sfn, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
+        #    if ans == QtGui.QMessageBox.No: return
+        #    else: os.remove(sfn)
+                 
+        rfmt_list = []
+        nfmt = self.respread_format_tbl.rowCount()        
+        for i in range(0, nfmt):
+            fmt_key = self.respread_format_tbl.item(i,0).text()
+            fmt_str = self.respread_format_tbl.item(i,1).text()
+            rfmt_list.append([fmt_key, fmt_str])
+    
+        skip_file_check = False
+        for ir in range(low, high+1):
+            rfn = '교독문 %03d.pptx'%ir
+            self.global_message.appendPlainText("--> %s"%rfn)
+            sfn = os.path.join(self.respread_dest_path.text(), rfn)
+            if skip_file_check and os.path.isfile(sfn):
+                ans = QtGui.QMessageBox.question(self, 'Continue?', 
+                        '%s already exist!'%sfn, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
+                if ans == QtGui.QMessageBox.No: return
+                else: os.remove(sfn)
+
+            #rtitle, rtext = hymal.get_responsive_reading_by_chapter(rnum)
+            rtitle, rtext = hymal.get_responsive_reading_by_chapter(ir)
+            rsize = rfmt_list[0][1].split(',')
+            
+            dest_ppt = pptx.Presentation()
+            dest_ppt.slide_width = pptx.util.Inches(float(rsize[0]))
+            dest_ppt.slide_height = pptx.util.Inches(float(rsize[1]))
+            blank_slide_layout = dest_ppt.slide_layouts[6]
+            
+            rtext = rtext[0]
+            leftover = len(rtext)%2
+            nread = int(len(rtext)/2)
+            nslide = nread + leftover
+            
+            rfmt_dic = {
+                _responsive_reading_format_key[1]: self.set_respread_ppt_textbox,
+                _responsive_reading_format_key[2]: self.set_respread_ppt_text,
+                _responsive_reading_format_key[3]: self.set_respread_ppt_newline
+            }
+    
+            for i in range(nslide):
+                dest_slide = self.add_empty_slide(dest_ppt, blank_slide_layout, self.ppt_hymal.back_col)
+                txt_box = self.set_respread_ppt_textbox(dest_slide, rfmt_list[1][1])
+                txt_f = txt_box.text_frame
+                txt_f.margin_left   = pptx.util.Inches(0.1 )
+                txt_f.margin_top    = pptx.util.Inches(0.05 )
+                txt_f.margin_right  = pptx.util.Inches(0.1)
+                txt_f.margin_bottom = pptx.util.Inches(0.05)
+                
+                if i is 0:
+                    #print(rfmt_list[2][1])
+                    self.set_respread_ppt_text(txt_f, '교독문 %d번 (%s)'%(ir,rtitle), rfmt_list[2][1]) 
+                    self.set_respread_ppt_newline(txt_f, rfmt_list[3][1])
+    
+                if leftover and i is nslide-1:
+                    rt1 = re.sub('\(.+\)', '', rtext.pop(0)).strip()
+                    self.set_respread_ppt_text(txt_f, '(다같이)', rfmt_list[7][1]) 
+                    self.set_respread_ppt_text(txt_f, rt1, rfmt_list[8][1]) 
+                else:
+                    rt1 = rtext.pop(0).strip()
+                    self.set_respread_ppt_text(txt_f, '(사회자)', rfmt_list[4][1]) 
+                    self.set_respread_ppt_text(txt_f, rt1, rfmt_list[5][1]) 
+                    self.set_respread_ppt_newline(txt_f, rfmt_list[6][1])
+                    rt2 = rtext.pop(0).strip()
+                    self.set_respread_ppt_text(txt_f, '(다같이)', rfmt_list[7][1]) 
+                    self.set_respread_ppt_text(txt_f, rt2, rfmt_list[8][1])                
+            try:
+                dest_ppt.save(sfn)
+            except Exception as e:
+                QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', str(e), 
+                QtGui.QMessageBox.Yes)
+                self.global_message.appendPlainText('... Error: %s'%str(e))
+                dest_ppt = None
+                return
+            
+        QtGui.QMessageBox.question(QtGui.QWidget(), 'Success', sfn, 
+            QtGui.QMessageBox.Yes)
+        self.global_message.appendPlainText('... Create RespRead: success\n')
+        
     def fx_tab_UI(self):
         import msoDash
         layout = QtGui.QFormLayout()
@@ -1037,7 +1452,8 @@ class QLivePPT(QtGui.QWidget):
                                     self.ppt_hymal.sx,
                                     self.ppt_hymal.sy,
                                     self.ppt_hymal.wid,
-                                    self.ppt_hymal.hgt)
+                                    self.ppt_hymal.hgt,
+                                    bk_col)
             txt_f = txt_box.text_frame
             self.set_textbox(txt_f, MSO_AUTO_SIZE.NONE, MSO_ANCHOR.MIDDLE, 
             MSO_ANCHOR.MIDDLE, 0, 0, 0, 0)
@@ -1075,6 +1491,7 @@ class QLivePPT(QtGui.QWidget):
             dest_ppt = None
             return
             
+        QtGui.QMessageBox.question(QtGui.QWidget(), 'Completed!', sfn, QtGui.QMessageBox.Yes)
         self.global_message.appendPlainText('... Create Hymal: success\n')
             
     def slide_tab_UI(self):
@@ -1792,7 +2209,6 @@ class QLivePPT(QtGui.QWidget):
         self.ppt_textbox.fx.shadow.OffsetY = int(self.fx_shadow_tbl.item(2,1).text())
         self.ppt_textbox.fx.shadow.Blur    = int(self.fx_shadow_tbl.item(3,1).text())
         self.ppt_textbox.fx.shadow.Transparency = float(self.fx_shadow_tbl.item(4,1).text())
-        
         self.global_message.appendPlainText(str(self.ppt_textbox.fx.shadow))
         
         try:
@@ -1980,6 +2396,7 @@ class QLivePPT(QtGui.QWidget):
         
     def set_common_var(self):
         self.ppt_slide = ppt_slide_info()
+        self.ppt_slide.back_col = _color_white
         self.ppt_textbox = ppt_textbox_info()
         self.ppt_hymal = ppt_hymal_info()
         self.ppt_shadow = ppt_shadow_info() 
@@ -2227,8 +2644,8 @@ class QLivePPT(QtGui.QWidget):
                                         MSO_ANCHOR.MIDDLE, 
                                         MSO_ANCHOR.MIDDLE,
                                         pbx.left_margin, pbx.top_margin,
-                                        pbx.right_margin, pbx.bottom_margin)
-        
+                                        pbx.right_margin, pbx.bottom_margin)           
+            
                         k_list = p_list[j:j+npg]
                         if pbx.word_wrap:
                             self.add_paragraph(txt_f, k_list[0], True)
@@ -2248,7 +2665,7 @@ class QLivePPT(QtGui.QWidget):
                                             MSO_ANCHOR.MIDDLE,
                                             pbx.left_margin, pbx.top_margin,
                                             pbx.right_margin, pbx.bottom_margin)
-
+                                              
                         k_list = p_list[j:j+left_over]
                         if pbx.word_wrap:
                             self.add_paragraph(txt_f, k_list[0], True)
@@ -2269,20 +2686,32 @@ class QLivePPT(QtGui.QWidget):
             ft = self.textbox_fill_type.currentIndex()
             if ft is _TEXTBOX_GRADIENT_FILL:
                 self.fill_textbox(sfn, bool(ft))
-            else:
-                self.fill_textbox(sfn, bool(ft))
+            #else:
+            #    self.fill_textbox(sfn, bool(ft))
     
         QtGui.QMessageBox.question(QtGui.QWidget(), 'Completed!', sfn, QtGui.QMessageBox.Yes)
         self.global_message.appendPlainText('Dest: %s\n%s\n... Create Subtitle PPT: success\n'%(
         save_file, str(pbx)))
     
-    def add_textbox(self, ds, sx, sy, wid, hgt):
-        return ds.shapes.add_textbox(\
-            pptx.util.Inches(sx),
-            pptx.util.Inches(sy),
-            pptx.util.Inches(wid),
-            pptx.util.Inches(hgt)
-        )
+    def add_textbox(self, ds, sx, sy, wid, hgt, bkc=None):
+        txt_box = ds.shapes.add_textbox(\
+                pptx.util.Inches(sx),
+                pptx.util.Inches(sy),
+                pptx.util.Inches(wid),
+                pptx.util.Inches(hgt))
+        
+        if bkc:
+            txt_box.fill.solid()
+            txt_box.fill.fore_color.rgb = pptx.dml.color.RGBColor(bkc.r, bkc.g, bkc.b)
+        else:
+            if self.textbox_fill.isChecked():
+                ft = self.textbox_fill_type.currentIndex()
+                if ft is _TEXTBOX_SOLID_FILL:
+                    txt_box.fill.solid()
+                    sc = get_rgb(self.textbox_solid_color.text())
+                    txt_box.fill.fore_color.rgb = pptx.dml.color.RGBColor(sc.r, sc.g, sc.b)
+                          
+        return txt_box
         
     def add_paragraph(self, tf, txt, first=False):
         if first:
@@ -2299,7 +2728,7 @@ class QLivePPT(QtGui.QWidget):
         
     # slide(az,va,ha): MSO_AUTO_SIZE.NONE, MSO_ANCHOR.BOTTOM, MSO_ANCHOR.MIDDLE
     # hymal(az,va,ha): MSO_AUTO_SIZE.NONE, MSO_ANCHOR.BOTTOM, MSO_ANCHOR.LEFT
-    def set_textbox(self, tf, az, va, ha, lm, tm, rm, bm):
+    def set_textbox(self, tf, az, va, ha, lm, tm, rm, bm, wr=True):
         tf.auto_size = az
         tf.vertical_anchor = va
         tf.horizontal_anchor= ha
@@ -2307,6 +2736,7 @@ class QLivePPT(QtGui.QWidget):
         tf.margin_top    = pptx.util.Inches(tm)
         tf.margin_right  = pptx.util.Inches(rm)
         tf.margin_bottom = pptx.util.Inches(bm)
+        tf.word_wrap = wr
     
     # slide(al,fn,fz,fc,bl) = PP_ALIGN.CENTER, 
     #                         self.ppt_textbox.font_name,
@@ -2385,7 +2815,7 @@ class QLivePPT(QtGui.QWidget):
             
         Presentation.Save()
         Application.Quit()
-        self.global_message.appendPlainText('... Gradient Fill: success\n')
+        self.global_message.appendPlainText('... Gradient Fill: success')
 
 def main():
     app = QtGui.QApplication(sys.argv)
