@@ -947,7 +947,11 @@ class QLivePPT(QtGui.QWidget):
                 ans = QtGui.QMessageBox.question(self, 'Continue?', 
                         '%s already exist!'%sfn, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
                 if ans == QtGui.QMessageBox.No: return
-                else: os.remove(sfn)
+                else:
+                    try:
+                        os.remove(sfn)
+                    except:
+                        pass
 
             #rtitle, rtext = hymal.get_responsive_reading_by_chapter(rnum)
             rtitle, rtext = hymal.get_responsive_reading_by_chapter(ir)
