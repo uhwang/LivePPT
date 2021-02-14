@@ -23,9 +23,12 @@
               Add Responsive reading #136
     01/11/21  Add Responsive reading number range
     
-    02/14/21  Py2Exe
-              ImportError: (cannot import name _elementpath) xml.etree.pyd'
-              Add 'lxml.etree', 'lxml._elementpath' to 'include'
+    02/14/21  1) new hymnal database from Bathlehtm 4.3.1
+              2) rewrite hymnal parse function for corus at hymal.py
+              3) switch from cx_Freeze to Py2Exe
+                 ImportError: (cannot import name _elementpath) xml.etree.pyd'
+                 Add 'lxml.etree', 'lxml._elementpath' to 'include'
+              4) Add default.pptx to Document for creating pptx
 
     Convert praise ppt to subtitle ppt for live streaming
 
@@ -196,6 +199,7 @@ _txtppt_text     = "TxtPPT"
 _fxtab_text      = "Fx"
 _respread_text   = "RespRd"
 _messagetab_text = "Message"
+_default_pptx    = "default.pptx"
 
 _worship_type = ["주일예배", "수요예배", "금요성령", "새벽기도", 
                  "부흥회", "부활절", "추수감사", "송구영신", "특별예베", "직접입력"]
@@ -630,17 +634,17 @@ class QLivePPT(QtGui.QWidget):
         self.tabs.addTab(self.slide_tab, _slidetab_text)
         self.tabs.addTab(self.fx_tab, _fxtab_text)
         self.tabs.addTab(self.hymal_tab, _hymaltab_text)
-        self.tabs.addTab(self.txtppt_tab, _txtppt_text)
         self.tabs.addTab(self.respread_tab, _respread_text)
+        self.tabs.addTab(self.txtppt_tab, _txtppt_text)
         self.tabs.addTab(self.message_tab, _messagetab_text)
 
         self.message_tab_UI()
         self.ppt_tab_UI()
         self.slide_tab_UI()
         self.hymal_tab_UI()
+        self.respreading_tab_UI()
         self.fx_tab_UI()
         self.txtppt_tab_UI()
-        self.respreading_tab_UI()
         tab_layout.addWidget(self.tabs)
         self.form_layout.addRow(tab_layout)
         self.setLayout(self.form_layout)
@@ -676,11 +680,11 @@ class QLivePPT(QtGui.QWidget):
         lay1.addWidget(self.respread_num)
         
         self.respread_format_tbl = QtGui.QTableWidget()
-        font = QtGui.QFont("Fixedsys",9,True)
-        self.respread_format_tbl.setFont(font)
+        #font = QtGui.QFont("Fixedsys",9,True)
+        #self.respread_format_tbl.setFont(font)
         self.respread_format_tbl.horizontalHeader().hide()
         self.respread_format_tbl.verticalHeader().hide()
-        self.respread_format_tbl.setColumnCount(3)
+        self.respread_format_tbl.setColumnCount(2)
         self.respread_format_tbl.setHorizontalHeaderItem(0, QtGui.QTableWidgetItem("Item"))
         self.respread_format_tbl.setHorizontalHeaderItem(1, QtGui.QTableWidgetItem("Data"))
         self.respread_format_tbl.setHorizontalHeaderItem(2, QtGui.QTableWidgetItem("Change"))
@@ -702,27 +706,28 @@ class QLivePPT(QtGui.QWidget):
         #    self.respread_format_tbl.setItem(ii, 0, QtGui.QTableWidgetItem(fmt[0]))
         #    self.respread_format_tbl.setItem(ii, 1, QtGui.QTableWidgetItem(fmt[1]))
         
-        lay2 = QtGui.QHBoxLayout()
-        lay2.addWidget(QtGui.QLabel('Slide Size'))
+        lay2 = QtGui.QGridLayout()
+        lay2.addWidget(QtGui.QLabel('Slide Size'), 0, 0)
         self.choose_respread_slide_size = QtGui.QComboBox(self)
         self.choose_respread_slide_size.addItems(_slide_size_type)
         self.choose_respread_slide_size.setCurrentIndex(0)
         self.choose_respread_slide_size.currentIndexChanged.connect(self.set_respread_slide_size)
-        lay2.addWidget(self.choose_respread_slide_size)
-        lay2.addWidget(QtGui.QLabel('Exist'))
-        self.check_respread_file_exist = QtGui.QCheckBox()
-        lay2.addWidget(self.check_respread_file_exist)
+        lay2.addWidget(self.choose_respread_slide_size, 0, 1)
         
-        lay3 = QtGui.QHBoxLayout()
-        lay3.addWidget(QtGui.QLabel('Dest'))
+        #lay3 = QtGui.QHBoxLayout()
+        lay2.addWidget(QtGui.QLabel('Dest'), 1, 0)
         self.respread_dest_path  = QtGui.QLineEdit(os.getcwd())
         self.respread_dest_path_btn = QtGui.QPushButton('', self)
         self.respread_dest_path_btn.clicked.connect(self.get_respread_path)
         self.respread_dest_path_btn.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_folder_open.table)))
         self.respread_dest_path_btn.setIconSize(QtCore.QSize(16,16))
         self.respread_dest_path_btn.setToolTip('Respread folder')
-        lay3.addWidget(self.respread_dest_path)
-        lay3.addWidget(self.respread_dest_path_btn)
+        lay2.addWidget(self.respread_dest_path, 1, 1)
+        lay2.addWidget(self.respread_dest_path_btn, 1, 2)
+
+        lay2.addWidget(QtGui.QLabel('File Check'), 2, 0)
+        self.check_respread_file_exist = QtGui.QCheckBox()
+        lay2.addWidget(self.check_respread_file_exist, 2, 1)
         
         lay4 = QtGui.QHBoxLayout()
         self.create_reapread = QtGui.QPushButton('', self)
@@ -754,7 +759,7 @@ class QLivePPT(QtGui.QWidget):
         layout.addWidget(self.respread_format_tbl)
         #layout.addRow(self.respread_edit)
         layout.addRow(lay2)
-        layout.addRow(lay3)
+        #layout.addRow(lay3)
         layout.addRow(lay4)
         self.respread_tab.setLayout(layout)
     
@@ -1332,26 +1337,37 @@ class QLivePPT(QtGui.QWidget):
         self.hymal_info_table.item(8,1).setText(c1)
         self.hymal_info_table.resizeRowsToContents()			
     
-        publish_layout = QtGui.QHBoxLayout()
-        publish_layout.addWidget(QtGui.QLabel('Dest'))
+        db_layout = QtGui.QGridLayout()
+        db_layout.addWidget(QtGui.QLabel('Slide Size'), 0, 0)
+        self.choose_hymal_slide_size = QtGui.QComboBox(self)
+        self.choose_hymal_slide_size.addItems(_slide_size_type)
+        self.choose_hymal_slide_size.setCurrentIndex(0)
+        self.choose_hymal_slide_size.currentIndexChanged.connect(self.set_hymal_slide_size)
+        db_layout.addWidget(self.choose_hymal_slide_size, 0, 1)
+
+        db_layout.addWidget(QtGui.QLabel('Dest'), 1, 0)
         self.ppt_hymal.save_path = os.getcwd()
         self.hymal_save_path  = QtGui.QLineEdit(self.ppt_hymal.save_path)
         self.hymal_save_path_btn = QtGui.QPushButton('', self)
         self.hymal_save_path_btn.clicked.connect(self.change_hymal_save_path)
         self.hymal_save_path_btn.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_folder_open.table)))
         self.hymal_save_path_btn.setIconSize(QtCore.QSize(16,16))
-        publish_layout.addWidget(self.hymal_save_path)
-        publish_layout.addWidget(self.hymal_save_path_btn)
+        db_layout.addWidget(self.hymal_save_path, 1, 1)
+        db_layout.addWidget(self.hymal_save_path_btn, 1, 2)
         
-        db_layout = QtGui.QHBoxLayout()
-        db_layout.addWidget(QtGui.QLabel('Hymal DB'))
+        db_layout.addWidget(QtGui.QLabel('Hymal DB'), 2, 0)
         self.hymnal_db_file_path  = QtGui.QLineEdit(hymal._default_db_file)
         self.hymnal_db_file_path_btn = QtGui.QPushButton('', self)
         self.hymnal_db_file_path_btn.clicked.connect(self.change_hymal_db_file)
         self.hymnal_db_file_path_btn.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_folder_open.table)))
         self.hymnal_db_file_path_btn.setIconSize(QtCore.QSize(16,16))
-        db_layout.addWidget(self.hymnal_db_file_path)
-        db_layout.addWidget(self.hymnal_db_file_path_btn)
+        db_layout.addWidget(self.hymnal_db_file_path, 2, 1)
+        db_layout.addWidget(self.hymnal_db_file_path_btn, 2, 2)
+        
+        db_layout.addWidget(QtGui.QLabel('File Check'), 3, 0)
+        self.hymnal_file_exist_chk = QtGui.QCheckBox()
+        self.hymnal_file_exist_chk.setChecked(False)
+        db_layout.addWidget(self.hymnal_file_exist_chk, 3,1)
         
         run_layout = QtGui.QHBoxLayout()
         self.hymal_convert_bth = QtGui.QPushButton('', self)
@@ -1359,18 +1375,9 @@ class QLivePPT(QtGui.QWidget):
         self.hymal_convert_bth.setIconSize(QtCore.QSize(24,24))
         self.hymal_convert_bth.clicked.connect(self.create_hymal_ppt)
         run_layout.addWidget(self.hymal_convert_bth)
-    
-        size_layout = QtGui.QHBoxLayout()
-        size_layout.addWidget(QtGui.QLabel('Slide Size'))
-        self.choose_hymal_slide_size = QtGui.QComboBox(self)
-        self.choose_hymal_slide_size.addItems(_slide_size_type)
-        self.choose_hymal_slide_size.setCurrentIndex(0)
-        self.choose_hymal_slide_size.currentIndexChanged.connect(self.set_hymal_slide_size)
-        size_layout.addWidget(self.choose_hymal_slide_size)
-        
+            
         layout.addRow(self.hymal_info_table)
-        layout.addRow(size_layout)
-        layout.addRow(publish_layout)
+        #layout.addRow(size_layout)
         layout.addRow(db_layout)
         layout.addRow(run_layout)
         self.hymal_tab.setLayout(layout)
@@ -2607,7 +2614,15 @@ class QLivePPT(QtGui.QWidget):
             else: os.remove(sfn)
             
         self.global_message.appendPlainText('... Create Subtitle PPT')
-        dest_ppt = pptx.Presentation()
+        try:
+            # 2/14/21 py2exe empty presentaion doesn't work
+            dest_ppt = pptx.Presentation(_default_pptx)
+        except Exception as e:
+            e_str = "Error: can't open pptx document\n%s"%str(e)
+            self.message.appendPlainText(e_str)
+            QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', e_str)
+            return
+            
         dest_ppt.slide_width = pptx.util.Inches(self.ppt_slide.wid)
         dest_ppt.slide_height = pptx.util.Inches(self.ppt_slide.hgt)
         blank_slide_layout = dest_ppt.slide_layouts[6]
