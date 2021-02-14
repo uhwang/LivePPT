@@ -1,30 +1,39 @@
-#from distutils.core import setup
-#import py2exe
+# -*- coding: utf-8 -*-
+
+# A simple setup script to create an executable using PyQt4. This also
+# demonstrates the method for creating a Windows executable that does not have
+# an associated console.
 #
-#setup(windows=['liveppt.py'])
+# PyQt4app.py is a very simple type of PyQt4 application
+#
+# Run the build process by running the command 'python setup.py build'
+#
+# If everything works well you should find a subdirectory in the build
+# subdirectory that contains the files needed to run the application
 
+#http://www.py2exe.org/index.cgi/CustomIcons
+#http://www.winterdrache.de/freeware/png2ico/
 
+from distutils.core import setup
+import py2exe
 import sys
-from cx_Freeze import setup, Executable
+sys.argv.append('py2exe')
 
+#setup(windows=["encode.py"], options={"py2exe" : {"includes" : ["sip", "PyQt4", "youtube_dl"]}})
 
-# GUI applications require a different base on Windows (the default is for a
-# console application).
-base = None
-if sys.platform == "win32":
-    base = "Win32GUI"
-
-# Dependencies are automatically detected, but it might need fine tuning.
-build_exe_options = {"packages": ["os"], 
-					 #"includes": ["newhymal.hdb", "outline.bas"],
-                     "excludes": ["numpy", "matplotlib", "tkinter"],
-					 'build_exe': 'LivePPT'
-					 }
-
-exe = Executable("liveppt.py", base = base, icon='lppt.ico')
-
-setup(  name = "LibPPT",
-        version = "0.1",
-        description = "Convert a hymal ppt to a subtitle ppt",
-        options = {"build_exe": build_exe_options},
-        executables = [exe])
+setup(
+	name = 'LivePPT',
+	version='0.5',
+	description='PPTX to subtitle',
+	author='Uisang Hwang',
+    #data_files = [("kbible_path.txt")],
+	#windows=[{"script": 'bwxref_gui.py', "icon_resources": [(0, "bwxref.ico")]}], 
+	windows=[{"script": 'liveppt.py', "icon_resources": [(0, "lppt.ico")],"dest_base": "LivePPT"}], 
+	options={'py2exe': 
+                {
+                 "dist_dir": "LivePPT", 
+                 "includes": ['lxml.etree', 'lxml._elementpath', "sip", "PyQt4"], 
+                 "excludes": ["TKinter", "numpy"]
+                }
+            } 
+)

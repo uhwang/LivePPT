@@ -20,7 +20,12 @@
     01/07/21  Add Responsive reading
     01/09/21  Add Responsive reading in range(1-137)
               Bug fix
-              Add Responsive reading #136               
+              Add Responsive reading #136
+    01/11/21  Add Responsive reading number range
+    
+    02/14/21  Py2Exe
+              ImportError: (cannot import name _elementpath) xml.etree.pyd'
+              Add 'lxml.etree', 'lxml._elementpath' to 'include'
 
     Convert praise ppt to subtitle ppt for live streaming
 
@@ -94,10 +99,15 @@ import pptx
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR, MSO_AUTO_SIZE
 import sys
 from PyQt4 import QtCore, QtGui
-import win32com.client
 import msoLine
 import msoDash
 import msoShadow
+import hymal
+
+try:
+    import win32com.client
+except:
+    pass
 
 import icon_file_add
 import icon_folder_open
@@ -699,6 +709,9 @@ class QLivePPT(QtGui.QWidget):
         self.choose_respread_slide_size.setCurrentIndex(0)
         self.choose_respread_slide_size.currentIndexChanged.connect(self.set_respread_slide_size)
         lay2.addWidget(self.choose_respread_slide_size)
+        lay2.addWidget(QtGui.QLabel('Exist'))
+        self.check_respread_file_exist = QtGui.QCheckBox()
+        lay2.addWidget(self.check_respread_file_exist)
         
         lay3 = QtGui.QHBoxLayout()
         lay3.addWidget(QtGui.QLabel('Dest'))
@@ -786,11 +799,11 @@ class QLivePPT(QtGui.QWidget):
             return
                 
         if not self.check_respread_num_range(low, high):
-            QtGui.QMessageBox.question(QtGui.QWidget(), 'Invalid number range', str(e),  QtGui.QMessageBox.Yes)
+            QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', 'Invalid number range %s'%num_text,  QtGui.QMessageBox.Yes)
             self.global_message.appendPlainText('Invalid number range: %s'%num_text)
             return
         
-        skip_file_check = False
+        skip_file_check = self.check_respread_file_exist.isChecked()
         
         for ir in range(low, high+1):
             rfn = '교독문 %03d-sub.pptx'%ir
@@ -800,7 +813,11 @@ class QLivePPT(QtGui.QWidget):
                 ans = QtGui.QMessageBox.question(self, 'Continue?', 
                         '%s already exist!'%sfn, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
                 if ans == QtGui.QMessageBox.No: return
-                else: os.remove(sfn)
+                else:
+                    try:
+                        os.remove(sfn)
+                    except:
+                        pass
             else: 
                 try:
                     os.remove(sfn)
@@ -852,13 +869,10 @@ class QLivePPT(QtGui.QWidget):
                 dest_ppt = None
                 return
                 
-            if self.textbox_fill.isChecked():
-                ft = self.textbox_fill_type.currentIndex()
-                if ft is _TEXTBOX_GRADIENT_FILL:
-                    self.fill_textbox(sfn, bool(ft))
-            #else:
-            #    self.fill_textbox(sfn, bool(ft))
-                
+            ft = self.textbox_fill_type.currentIndex()
+            if self.textbox_fill.isChecked() and ft is _TEXTBOX_GRADIENT_FILL:
+                self.fill_textbox(sfn, bool(ft))
+
         QtGui.QMessageBox.question(QtGui.QWidget(), 'Success', sfn, QtGui.QMessageBox.Yes)
         self.global_message.appendPlainText('... Create RespRead Sub: success\n')
         
@@ -876,7 +890,6 @@ class QLivePPT(QtGui.QWidget):
         MSO_ANCHOR.MIDDLE, 0, 0, 0, 0, True)
         return txt_box
             
-    # 맑은고딕, 30, True, 255:255:255, Left
     def set_respread_ppt_text(self, txt_frame, txt, fmt):
         fmt_list = fmt.split(',')
         p = txt_frame.add_paragraph()
@@ -913,24 +926,10 @@ class QLivePPT(QtGui.QWidget):
             return
                 
         if not self.check_respread_num_range(low, high):
-            QtGui.QMessageBox.question(QtGui.QWidget(), 'Invalid number range', str(e),  QtGui.QMessageBox.Yes)
-            self.global_message.appendPlainText('Invalid number range: %d %d'%(low, high))
+            QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', 'Invalid number range %s'%num_text,  QtGui.QMessageBox.Yes)
+            self.global_message.appendPlainText('Invalid number range: %s'%num_text)
             return
-            
-        #try: 
-        #    rnum = int(self.respread_num.text())
-        #except Exception as e: 
-        #    QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', "Invalid number", 
-        #    QtGui.QMessageBox.Yes)
-        #    self.global_message.appendPlainText('Invalid number: %s'%self.respread_num.text())
-        #    return
-        #sfn = os.path.join(self.respread_dest_path.text(), '교독문 %03d.pptx'%rnum)
-        #if os.path.isfile(sfn):
-        #    ans = QtGui.QMessageBox.question(self, 'Continue?', 
-        #            '%s already exist!'%sfn, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
-        #    if ans == QtGui.QMessageBox.No: return
-        #    else: os.remove(sfn)
-                 
+                     
         rfmt_list = []
         nfmt = self.respread_format_tbl.rowCount()        
         for i in range(0, nfmt):
@@ -938,7 +937,8 @@ class QLivePPT(QtGui.QWidget):
             fmt_str = self.respread_format_tbl.item(i,1).text()
             rfmt_list.append([fmt_key, fmt_str])
     
-        skip_file_check = False
+        skip_file_check = self.check_respread_file_exist.isChecked()
+        
         for ir in range(low, high+1):
             rfn = '교독문 %03d.pptx'%ir
             self.global_message.appendPlainText("--> %s"%rfn)
@@ -952,8 +952,12 @@ class QLivePPT(QtGui.QWidget):
                         os.remove(sfn)
                     except:
                         pass
+            else: 
+                try:
+                    os.remove(sfn)
+                except:
+                    pass
 
-            #rtitle, rtext = hymal.get_responsive_reading_by_chapter(rnum)
             rtitle, rtext = hymal.get_responsive_reading_by_chapter(ir)
             rsize = rfmt_list[0][1].split(',')
             
@@ -983,7 +987,6 @@ class QLivePPT(QtGui.QWidget):
                 txt_f.margin_bottom = pptx.util.Inches(0.05)
                 
                 if i is 0:
-                    #print(rfmt_list[2][1])
                     self.set_respread_ppt_text(txt_f, '교독문 %d번 (%s)'%(ir,rtitle), rfmt_list[2][1]) 
                     self.set_respread_ppt_newline(txt_f, rfmt_list[3][1])
     
@@ -1152,6 +1155,7 @@ class QLivePPT(QtGui.QWidget):
             text[i] = t.strip()
 
         size = len(text) 
+        print(size)
         if size == 1:
             line_text = text
         else:
@@ -1195,10 +1199,10 @@ class QLivePPT(QtGui.QWidget):
         back_col = get_rgb(self.hymal_info_table.item(8,1).text())
         font_col  = get_rgb(self.hymal_info_table.item(6,1).text())
         font_size = float(self.hymal_info_table.item(7,1).text())
-
+        
         for in_text in line_text:
             dest_slide = self.add_empty_slide(dest_ppt, blank_slide_layout, back_col)
-            txt_box = self.add_textbox(dest_slide, sx, sy, wid, hgt)
+            txt_box = self.add_textbox(dest_slide, sx, sy, wid, hgt, back_col)
             txt_f = txt_box.text_frame
             self.set_textbox(txt_f, MSO_AUTO_SIZE.NONE, 
             MSO_ANCHOR.MIDDLE, MSO_ANCHOR.MIDDLE, 0, 0, 0, 0)
@@ -1339,6 +1343,16 @@ class QLivePPT(QtGui.QWidget):
         publish_layout.addWidget(self.hymal_save_path)
         publish_layout.addWidget(self.hymal_save_path_btn)
         
+        db_layout = QtGui.QHBoxLayout()
+        db_layout.addWidget(QtGui.QLabel('Hymal DB'))
+        self.hymnal_db_file_path  = QtGui.QLineEdit(hymal._default_db_file)
+        self.hymnal_db_file_path_btn = QtGui.QPushButton('', self)
+        self.hymnal_db_file_path_btn.clicked.connect(self.change_hymal_db_file)
+        self.hymnal_db_file_path_btn.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_folder_open.table)))
+        self.hymnal_db_file_path_btn.setIconSize(QtCore.QSize(16,16))
+        db_layout.addWidget(self.hymnal_db_file_path)
+        db_layout.addWidget(self.hymnal_db_file_path_btn)
+        
         run_layout = QtGui.QHBoxLayout()
         self.hymal_convert_bth = QtGui.QPushButton('', self)
         self.hymal_convert_bth.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_convert.table)))
@@ -1357,6 +1371,7 @@ class QLivePPT(QtGui.QWidget):
         layout.addRow(self.hymal_info_table)
         layout.addRow(size_layout)
         layout.addRow(publish_layout)
+        layout.addRow(db_layout)
         layout.addRow(run_layout)
         self.hymal_tab.setLayout(layout)
         self.global_message.appendPlainText('... Hymal tab UI created')
@@ -1367,6 +1382,11 @@ class QLivePPT(QtGui.QWidget):
         self.ppt_hymal.hgt = h
         self.hymal_info_table.item(3,1).setText("%f"%w)
         self.hymal_info_table.item(4,1).setText("%f"%h)
+        
+    def change_hymal_db_file(self):
+        file = QtGui.QFileDialog.getOpenFileName(self, "Choose Hymal DB", directory=os.getcwd())
+        if not file: return
+        self.db_file_path.setText(file) 
         
     def change_hymal_save_path(self):
         startingDir = os.getcwd() 
@@ -1419,7 +1439,7 @@ class QLivePPT(QtGui.QWidget):
             "Comma separated {}".format(col_str), QtGui.QMessageBox.Yes)
             return
             
-        lyric = hymal.get_hymal_by_chapter(chap)
+        lyric = hymal.get_hymal_by_chapter(chap, self.hymnal_db_file_path.text())
         for key, value in titnum.title_chap.items():
             if value == chap:
                 title = key
@@ -2708,12 +2728,11 @@ class QLivePPT(QtGui.QWidget):
             txt_box.fill.solid()
             txt_box.fill.fore_color.rgb = pptx.dml.color.RGBColor(bkc.r, bkc.g, bkc.b)
         else:
-            if self.textbox_fill.isChecked():
-                ft = self.textbox_fill_type.currentIndex()
-                if ft is _TEXTBOX_SOLID_FILL:
-                    txt_box.fill.solid()
-                    sc = get_rgb(self.textbox_solid_color.text())
-                    txt_box.fill.fore_color.rgb = pptx.dml.color.RGBColor(sc.r, sc.g, sc.b)
+            ft = self.textbox_fill_type.currentIndex()
+            if self.textbox_fill.isChecked() and ft is _TEXTBOX_SOLID_FILL:
+                txt_box.fill.solid()
+                sc = get_rgb(self.textbox_solid_color.text())
+                txt_box.fill.fore_color.rgb = pptx.dml.color.RGBColor(sc.r, sc.g, sc.b)
                           
         return txt_box
         
