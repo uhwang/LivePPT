@@ -199,7 +199,7 @@ _txtppt_text     = "TxtPPT"
 _fxtab_text      = "Fx"
 _respread_text   = "RespRd"
 _messagetab_text = "Message"
-_default_pptx    = "default.pptx"
+_default_pptx_template = "default.pptx"
 
 _worship_type = ["주일예배", "수요예배", "금요성령", "새벽기도", 
                  "부흥회", "부활절", "추수감사", "송구영신", "특별예베", "직접입력"]
@@ -835,7 +835,7 @@ class QLivePPT(QtGui.QWidget):
             rtext = rtext[0]
             wid, hgt = float(rsize[0]), float(rsize[1])
             pbx = self.ppt_textbox
-            dest_ppt = pptx.Presentation()
+            dest_ppt = pptx.Presentation(_default_pptx_template)
             dest_ppt.slide_width = pptx.util.Inches(wid)
             dest_ppt.slide_height = pptx.util.Inches(hgt)
             blank_slide_layout = dest_ppt.slide_layouts[6]
@@ -843,19 +843,6 @@ class QLivePPT(QtGui.QWidget):
             for i, rt in enumerate(rtext):
                 dest_slide = self.add_empty_slide(dest_ppt, blank_slide_layout, _color_white)
                 txt_box = self.add_textbox(dest_slide, 0, hgt-pbx.hgt, wid, pbx.hgt)
-                #if self.textbox_fill.isChecked():
-                #    ft = self.textbox_fill_type.currentIndex()
-                #    if ft is _TEXTBOX_SOLID_FILL:
-                #        txt_box.fill.solid()
-                #        sc = get_rgb(self.textbox_solid_color.text())
-                #        txt_box.fill.fore_color.rgb = pptx.dml.color.RGBColor(sc.r, sc.g, sc.b)
-                    #else:
-                    #    txt_box.fill.gradient()
-                    #    txt_box.fill.gradient_angle = 0
-                    #    txt_box.fill.gradient_stops[0].position = 0.0
-                    #    txt_box.fill.gradient_stops[1].position = 1.0
-                    #    txt_box.fill.gradient_stops[0].color = 1.0
-                                      
                 txt_f = txt_box.text_frame
                 self.set_textbox(txt_f, 
                                 MSO_AUTO_SIZE.NONE, 
@@ -963,10 +950,16 @@ class QLivePPT(QtGui.QWidget):
                 except:
                     pass
 
-            rtitle, rtext = hymal.get_responsive_reading_by_chapter(ir)
+            rtitle, rtext = hymal.get_responsive_reading_by_chapter(ir, self.hymnal_db_file_path.text())
+            
+            if isinstance(rtitle, int) and rtitle < 0:
+                self.global_message.appendPlainText(rtext)
+                QtGui.QMessageBox.question(QtGui.QWidget(), 'Invalid DB', rtext, QtGui.QMessageBox.Yes)
+                return            
+            
             rsize = rfmt_list[0][1].split(',')
             
-            dest_ppt = pptx.Presentation()
+            dest_ppt = pptx.Presentation(_default_pptx_template)
             dest_ppt.slide_width = pptx.util.Inches(float(rsize[0]))
             dest_ppt.slide_height = pptx.util.Inches(float(rsize[1]))
             blank_slide_layout = dest_ppt.slide_layouts[6]
@@ -1160,7 +1153,7 @@ class QLivePPT(QtGui.QWidget):
             text[i] = t.strip()
 
         size = len(text) 
-        print(size)
+        #print(size)
         if size == 1:
             line_text = text
         else:
@@ -1187,7 +1180,7 @@ class QLivePPT(QtGui.QWidget):
             else: os.remove(sfn)
 
         self.global_message.appendPlainText('... Create TxtPPT')
-        dest_ppt = pptx.Presentation()
+        dest_ppt = pptx.Presentation(_default_pptx_template)
         dest_ppt.slide_width = pptx.util.Inches(self.ppt_hymal.wid)
         dest_ppt.slide_height = pptx.util.Inches(self.ppt_hymal.hgt)
         blank_slide_layout = dest_ppt.slide_layouts[6]
@@ -1278,6 +1271,15 @@ class QLivePPT(QtGui.QWidget):
         
     def hymal_tab_UI(self):
         layout = QtGui.QFormLayout()
+        
+        lay = QtGui.QHBoxLayout()
+        lay.addWidget(QtGui.QLabel("Hymnal Chap"))
+        self.hymal_num = QtGui.QLineEdit()
+        self.hymal_num.setText("%d"%self.ppt_hymal.chap)
+        self.hymal_num.setToolTip("1-639")
+        lay.addWidget(self.hymal_num)
+        layout.addRow(lay)
+        
         self.hymal_info_table = QtGui.QTableWidget()
         font = QtGui.QFont("Arial",9,True)
         self.hymal_info_table.setFont(font)
@@ -1293,7 +1295,8 @@ class QLivePPT(QtGui.QWidget):
         header.setResizeMode(1, QtGui.QHeaderView.Stretch)
         header.setResizeMode(2, QtGui.QHeaderView.ResizeToContents)
         
-        info = ["Chapter", "Textbox(sx)", "Textbox(sy)", "Textbox(wid)",
+        info = [#"Chapter", 
+                "Textbox(sx)", "Textbox(sy)", "Textbox(wid)",
                 "Textbox(hgt)", "Font", "Font(RGB)", "Size(pt)", "Back(RGB)"]
     
         self.hymal_info_table.setRowCount(len(info))
@@ -1308,33 +1311,33 @@ class QLivePPT(QtGui.QWidget):
         self.hymal_textbox_font_picker.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_font_picker.table)))
         self.hymal_textbox_font_picker.setIconSize(QtCore.QSize(16,16))
         self.connect(self.hymal_textbox_font_picker, QtCore.SIGNAL('clicked()'), self.pick_hymal_font)
-        self.hymal_info_table.setCellWidget(5,2, self.hymal_textbox_font_picker)
+        self.hymal_info_table.setCellWidget(4,2, self.hymal_textbox_font_picker)
         
         self.hymal_font_col_picker = QtGui.QPushButton('', self)
         self.hymal_font_col_picker.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_color_picker.table)))
         self.hymal_font_col_picker.setIconSize(QtCore.QSize(16,16))
         self.connect(self.hymal_font_col_picker, QtCore.SIGNAL('clicked()'), self.pick_hymal_font_color)
-        self.hymal_info_table.setCellWidget(6,2, self.hymal_font_col_picker)
+        self.hymal_info_table.setCellWidget(5,2, self.hymal_font_col_picker)
     
         self.hymal_back_col_picker = QtGui.QPushButton('', self)
         self.hymal_back_col_picker.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_color_picker.table)))
         self.hymal_back_col_picker.setIconSize(QtCore.QSize(16,16))
         self.connect(self.hymal_back_col_picker, QtCore.SIGNAL('clicked()'), self.pick_hymal_bk_color)
-        self.hymal_info_table.setCellWidget(8,2, self.hymal_back_col_picker)
+        self.hymal_info_table.setCellWidget(7,2, self.hymal_back_col_picker)
         
-        self.hymal_info_table.item(0,1).setText("%d"%self.ppt_hymal.chap)
-        self.hymal_info_table.item(1,1).setText("%f"%float(self.ppt_hymal.sx ))
-        self.hymal_info_table.item(2,1).setText("%f"%float(self.ppt_hymal.sy ))
-        self.hymal_info_table.item(3,1).setText("%f"%float(self.ppt_hymal.wid))
-        self.hymal_info_table.item(4,1).setText("%f"%float(self.ppt_hymal.hgt))
-        self.hymal_info_table.item(5,1).setText(self.ppt_hymal.font_name)
+        #self.hymal_info_table.item(0,1).setText("%d"%self.ppt_hymal.chap)
+        self.hymal_info_table.item(0,1).setText("%f"%float(self.ppt_hymal.sx ))
+        self.hymal_info_table.item(1,1).setText("%f"%float(self.ppt_hymal.sy ))
+        self.hymal_info_table.item(2,1).setText("%f"%float(self.ppt_hymal.wid))
+        self.hymal_info_table.item(3,1).setText("%f"%float(self.ppt_hymal.hgt))
+        self.hymal_info_table.item(4,1).setText(self.ppt_hymal.font_name)
         c = self.ppt_hymal.font_col
         c1="%03d,%03d,%03d"%(c.r,c.g,c.b)
-        self.hymal_info_table.item(6,1).setText(c1)
-        self.hymal_info_table.item(7,1).setText("%d"%self.ppt_hymal.font_size)
+        self.hymal_info_table.item(5,1).setText(c1)
+        self.hymal_info_table.item(6,1).setText("%d"%self.ppt_hymal.font_size)
         c = self.ppt_hymal.back_col
         c1="%03d,%03d,%03d"%(c.r,c.g,c.b)
-        self.hymal_info_table.item(8,1).setText(c1)
+        self.hymal_info_table.item(7,1).setText(c1)
         self.hymal_info_table.resizeRowsToContents()			
     
         db_layout = QtGui.QGridLayout()
@@ -1393,7 +1396,7 @@ class QLivePPT(QtGui.QWidget):
     def change_hymal_db_file(self):
         file = QtGui.QFileDialog.getOpenFileName(self, "Choose Hymal DB", directory=os.getcwd())
         if not file: return
-        self.db_file_path.setText(file) 
+        self.hymnal_db_file_path.setText(file) 
         
     def change_hymal_save_path(self):
         startingDir = os.getcwd() 
@@ -1420,107 +1423,137 @@ class QLivePPT(QtGui.QWidget):
         if valid: 
             self.ppt_hymal.font_name = font.family()
             self.hymal_info_table.item(5,1).setText(font.family())	
+            
+    # hymal: 1-639 
+    def check_hymal_num_range(self, low, high):
+        return False if low > high or low < 1 or high > 639 else True
         
     def create_hymal_ppt(self):
         import hymal
         import titnum
         
         self.global_message.appendPlainText("... Create Hymal")
-        chap = int(self.hymal_info_table.item(0,1).text())
-        if chap < 1 or chap > hymal.max_hymal:
-            QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', 
-            "Invalid hymal chapter: {}".format(chap), QtGui.QMessageBox.Yes)
+        
+        try: 
+            num_text = self.hymal_num.text()
+            if num_text.find('-') > 0:
+                num_range = num_text.split('-')
+                low, high = int(num_range[0]), int(num_range[1])
+            else:
+                low, high = int(num_text), int(num_text)
+        except Exception as e: 
+            QtGui.QMessageBox.question(QtGui.QWidget(), 'Invalid number', str(e),  QtGui.QMessageBox.Yes)
+            self.global_message.appendPlainText('Invalid number: %s'%num_text)
             return
-            
-        col_str = self.hymal_info_table.item(8,1).text()
+        
+        if not self.check_hymal_num_range(low, high):
+            QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', 'Invalid number range %s'%num_text,  QtGui.QMessageBox.Yes)
+            self.global_message.appendPlainText('Invalid number range: %s'%num_text)
+            return
+          
+        col_str = self.hymal_info_table.item(7,1).text()
         bk_col = get_rgb(col_str)
         if not bk_col:
             QtGui.QMessageBox.question(QtGui.QWidget(), 'Invalid Back color', 
             "Comma separated {}".format(col_str), QtGui.QMessageBox.Yes)
             return
     
-        col_str = self.hymal_info_table.item(6,1).text()
+        col_str = self.hymal_info_table.item(5,1).text()
         ft_col = get_rgb(col_str)
         if not ft_col:
             QtGui.QMessageBox.question(QtGui.QWidget(), 'Invalid Font color', 
             "Comma separated {}".format(col_str), QtGui.QMessageBox.Yes)
             return
+
+        skip_file_check = self.hymnal_file_exist_chk.isChecked()
             
-        lyric = hymal.get_hymal_by_chapter(chap, self.hymnal_db_file_path.text())
-        for key, value in titnum.title_chap.items():
-            if value == chap:
-                title = key
-        
-        fname = "%s-%d.pptx"%(title,chap)
-        self.global_message.appendPlainText("Title: %s\nChap: %d"%(title, chap))
-        sfn = os.path.join(self.hymal_save_path.text(), fname)
-        
-        if os.path.isfile(sfn):
-            ans = QtGui.QMessageBox.question(self, 'Continue?', 
-                    '%s already exist!'%sfn, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
-            if ans == QtGui.QMessageBox.No: return
-            else: os.remove(sfn)
-        
-        self.ppt_hymal.sx  = float(self.hymal_info_table.item(1,1).text())
-        self.ppt_hymal.sy  = float(self.hymal_info_table.item(2,1).text())
-        self.ppt_hymal.wid = float(self.hymal_info_table.item(3,1).text())
-        self.ppt_hymal.hgt = float(self.hymal_info_table.item(4,1).text())
-        self.ppt_hymal.font_name = self.hymal_info_table.item(5,1).text()
-        
-        self.ppt_hymal.back_col  = bk_col
-        self.ppt_hymal.font_size = float(self.hymal_info_table.item(7,1).text())
-        self.ppt_hymal.font_col  = ft_col
-        
-        dest_ppt = pptx.Presentation()
-        dest_ppt.slide_width = pptx.util.Inches(self.ppt_hymal.wid)
-        dest_ppt.slide_height = pptx.util.Inches(self.ppt_hymal.hgt)
-        blank_slide_layout = dest_ppt.slide_layouts[6]
-        
-        for l1, l in enumerate(lyric):
-            dest_slide = self.add_empty_slide(dest_ppt, blank_slide_layout, 
-            self.ppt_hymal.back_col)
-            txt_box = self.add_textbox(dest_slide, 
-                                    self.ppt_hymal.sx,
-                                    self.ppt_hymal.sy,
-                                    self.ppt_hymal.wid,
-                                    self.ppt_hymal.hgt,
-                                    bk_col)
-            txt_f = txt_box.text_frame
-            self.set_textbox(txt_f, MSO_AUTO_SIZE.NONE, MSO_ANCHOR.MIDDLE, 
-            MSO_ANCHOR.MIDDLE, 0, 0, 0, 0)
-            
-            for l2 in l:
-                p = txt_f.add_paragraph()
-                p.text = l2
-                self.set_paragraph(p, PP_ALIGN.CENTER, 
-                            self.ppt_hymal.font_name, 
-                            self.ppt_hymal.font_size,
-                            self.ppt_hymal.font_col, 
-                            True)
-            p = txt_f.add_paragraph()
-            p.text ='\n'
-            self.set_paragraph(p, PP_ALIGN.CENTER, 
-                            self.ppt_hymal.font_name, 
-                            10,
-                            self.ppt_hymal.font_col, 
-                            True)
-                            
-            p = txt_f.add_paragraph()
-            p.text = '(찬송가 %d장 %d절)'%(chap, l1+1)
-            self.set_paragraph(p, PP_ALIGN.CENTER, 
-                            self.ppt_hymal.font_name, 
-                            20,
-                            self.ppt_hymal.font_col, 
-                            True)
+        for chap in range(low, high+1):
+            title, lyric = hymal.get_hymal_by_chapter(chap, self.hymnal_db_file_path.text())
+            if isinstance(title, int) and title < 0:
+                QtGui.QMessageBox.question(QtGui.QWidget(), 'Invalid DB', lyric, QtGui.QMessageBox.Yes)
+                self.global_message.appendPlainText(lyric)
+                return
                 
-        try:
-            dest_ppt.save(sfn)
-        except Exception as e:
-            QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', str(e), 
-            QtGui.QMessageBox.Yes)
-            self.global_message.appendPlainText('... Error: %s'%str(e))
-            dest_ppt = None
-            return
+            title = re.sub("[<br><b></b>]", '', title)
+            fname = "%03d-%s.pptx"%(chap, title)
+            self.global_message.appendPlainText("Title: %s\nChap: %d"%(title, chap))
+            sfn = os.path.join(self.hymal_save_path.text(), fname)
+            
+            if skip_file_check and os.path.isfile(sfn):
+                ans = QtGui.QMessageBox.question(self, 'Continue?', 
+                        '%s already exist!'%sfn, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
+                if ans == QtGui.QMessageBox.No: return
+                else:
+                    try:
+                        os.remove(sfn)
+                    except:
+                        pass
+            else: 
+                try:
+                    os.remove(sfn)
+                except:
+                    pass
+                    
+            self.ppt_hymal.sx  = float(self.hymal_info_table.item(0,1).text())
+            self.ppt_hymal.sy  = float(self.hymal_info_table.item(1,1).text())
+            self.ppt_hymal.wid = float(self.hymal_info_table.item(2,1).text())
+            self.ppt_hymal.hgt = float(self.hymal_info_table.item(3,1).text())
+            self.ppt_hymal.font_name = self.hymal_info_table.item(4,1).text()
+            
+            self.ppt_hymal.back_col  = bk_col
+            self.ppt_hymal.font_size = float(self.hymal_info_table.item(6,1).text())
+            self.ppt_hymal.font_col  = ft_col
+            
+            dest_ppt = pptx.Presentation(_default_pptx_template)
+            dest_ppt.slide_width = pptx.util.Inches(self.ppt_hymal.wid)
+            dest_ppt.slide_height = pptx.util.Inches(self.ppt_hymal.hgt)
+            blank_slide_layout = dest_ppt.slide_layouts[6]
+            
+            for l1, l in enumerate(lyric):
+                dest_slide = self.add_empty_slide(dest_ppt, blank_slide_layout, 
+                self.ppt_hymal.back_col)
+                txt_box = self.add_textbox(dest_slide, 
+                                        self.ppt_hymal.sx,
+                                        self.ppt_hymal.sy,
+                                        self.ppt_hymal.wid,
+                                        self.ppt_hymal.hgt,
+                                        bk_col)
+                txt_f = txt_box.text_frame
+                self.set_textbox(txt_f, MSO_AUTO_SIZE.NONE, MSO_ANCHOR.MIDDLE, 
+                MSO_ANCHOR.MIDDLE, 0, 0, 0, 0)
+
+                for l2 in l:
+                    p = txt_f.add_paragraph()
+                    p.text = l2
+                    self.set_paragraph(p, PP_ALIGN.CENTER, 
+                                self.ppt_hymal.font_name, 
+                                self.ppt_hymal.font_size,
+                                self.ppt_hymal.font_col, 
+                                True)
+                p = txt_f.add_paragraph()
+                p.text ='\n'
+                self.set_paragraph(p, PP_ALIGN.CENTER, 
+                                self.ppt_hymal.font_name, 
+                                10,
+                                self.ppt_hymal.font_col, 
+                                True)
+                                
+                p = txt_f.add_paragraph()
+                p.text = '(찬송가 %d장 %d절)'%(chap, l1+1)
+                self.set_paragraph(p, PP_ALIGN.CENTER, 
+                                self.ppt_hymal.font_name, 
+                                20,
+                                self.ppt_hymal.font_col, 
+                                True)
+                    
+            try:
+                dest_ppt.save(sfn)
+            except Exception as e:
+                QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', str(e), 
+                QtGui.QMessageBox.Yes)
+                self.global_message.appendPlainText('... Error: %s'%str(e))
+                dest_ppt = None
+                return
             
         QtGui.QMessageBox.question(QtGui.QWidget(), 'Completed!', sfn, QtGui.QMessageBox.Yes)
         self.global_message.appendPlainText('... Create Hymal: success\n')
@@ -2616,10 +2649,10 @@ class QLivePPT(QtGui.QWidget):
         self.global_message.appendPlainText('... Create Subtitle PPT')
         try:
             # 2/14/21 py2exe empty presentaion doesn't work
-            dest_ppt = pptx.Presentation(_default_pptx)
+            dest_ppt = pptx.Presentation(_default_pptx_template)
         except Exception as e:
             e_str = "Error: can't open pptx document\n%s"%str(e)
-            self.message.appendPlainText(e_str)
+            self.global_message.appendPlainText(e_str)
             QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', e_str)
             return
             
