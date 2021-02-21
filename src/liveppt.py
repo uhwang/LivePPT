@@ -1188,15 +1188,15 @@ class QLivePPT(QtGui.QWidget):
         self.global_message.appendPlainText('Total slide: %d'%len(line_text))
         self.global_message.appendPlainText('%s'%str(self.ppt_hymal))
 
-        sx  = float(self.hymal_info_table.item(1,1).text())
-        sy  = float(self.hymal_info_table.item(2,1).text())
-        wid = float(self.hymal_info_table.item(3,1).text())
-        hgt = float(self.hymal_info_table.item(4,1).text())
-        font_name = self.hymal_info_table.item(5,1).text()
+        sx  = float(self.hymal_info_table.item(0,1).text())
+        sy  = float(self.hymal_info_table.item(1,1).text())
+        wid = float(self.hymal_info_table.item(2,1).text())
+        hgt = float(self.hymal_info_table.item(3,1).text())
+        font_name = self.hymal_info_table.item(4,1).text()
 
-        back_col = get_rgb(self.hymal_info_table.item(8,1).text())
-        font_col  = get_rgb(self.hymal_info_table.item(6,1).text())
-        font_size = float(self.hymal_info_table.item(7,1).text())
+        back_col = get_rgb(self.hymal_info_table.item(7,1).text())
+        font_col  = get_rgb(self.hymal_info_table.item(5,1).text())
+        font_size = float(self.hymal_info_table.item(6,1).text())
         
         for in_text in line_text:
             dest_slide = self.add_empty_slide(dest_ppt, blank_slide_layout, back_col)
@@ -1281,8 +1281,8 @@ class QLivePPT(QtGui.QWidget):
         layout.addRow(lay)
         
         self.hymal_info_table = QtGui.QTableWidget()
-        font = QtGui.QFont("Arial",9,True)
-        self.hymal_info_table.setFont(font)
+        #font = QtGui.QFont("Arial",9,True)
+        #self.hymal_info_table.setFont(font)
         self.hymal_info_table.horizontalHeader().hide()
         self.hymal_info_table.verticalHeader().hide()
         self.hymal_info_table.setColumnCount(3)
