@@ -30,6 +30,7 @@
                  Add 'lxml.etree', 'lxml._elementpath' to 'include'
               4) Add default.pptx to Document for creating pptx
     03/01/21  Rewrite hymal.py for chorus and create_hymal_ppt for numbering
+    03/02/21  File deleting exception
 
     Convert praise ppt to subtitle ppt for live streaming
 
@@ -156,7 +157,6 @@ _slide_size_type = [
 _skip_hymal_info = re.compile('찬송가')
 _find_lyric_number = re.compile('\d\.')
 _find_rgb = re.compile("(\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})")
-
 _default_txt_sx = 0
 _default_txt_sy = 4.48
 _default_txt_wid = 10.0
@@ -261,6 +261,11 @@ def get_slide_size(t):
     t1 = t.split(',')
     t2 = t1[1][1:-1].split(':')
     return float(t2[0]), float(t2[1])
+
+    
+def is_access_denied(e_str):
+    key = ["access", "denied", "used", "another"]
+    return any(x in e_str.lower() for x in key)
 
 class QUserWorshipType(QtGui.QDialog):
     def __init__(self, lppt):
@@ -823,15 +828,24 @@ class QLivePPT(QtGui.QWidget):
                 else:
                     try:
                         os.remove(sfn)
-                    except:
-                        pass
-            else: 
+                    except OSError as e:
+                        e_str = str(e)
+                        if is_access_denied(e_str):
+                            e_str += "%s is already opened!"%sfn
+                            msgcom.message_box(msgcom.message_error, e_str)
+                            self.global_message.appendPlainText(e_str)
+                            return
                 try:
                     os.remove(sfn)
-                except:
-                    pass
+                except OSError as e:
+                    e_str = str(e)
+                    if is_access_denied(e_str):
+                        e_str += "%s is already opened!"%sfn
+                        msgcom.message_box(msgcom.message_error, e_str)
+                        self.global_message.appendPlainText(e_str)
+                        return
                 
-            _, rtext = hymal.get_responsive_reading_by_chapter(ir)
+            _, rtext = hymal.get_responsive_reading_by_chapter(ir, self.hymnal_db_file_path.text())
             
             rsize = self.respread_format_tbl.item(0,1).text().split(',')
             rtext = rtext[0]
@@ -944,17 +958,23 @@ class QLivePPT(QtGui.QWidget):
                 else:
                     try:
                         os.remove(sfn)
-                    except Exception e:
+                    except OSError as e:
                         e_str = str(e)
-                        msgcom.message_box(msgcom.message_error, e_str)
-                        return
+                        if is_access_denied(e_str):
+                            e_str += "%s is already opened!"%sfn
+                            msgcom.message_box(msgcom.message_error, e_str)
+                            self.global_message.appendPlainText(e_str)
+                            return
             else: 
                 try:
                     os.remove(sfn)
-                except Exception e:
+                except OSError as e:
                     e_str = str(e)
-                    msgcom.message_box(msgcom.message_error, e_str)
-                    return
+                    if is_access_denied(e_str):
+                        e_str += "%s is already opened!"%sfn
+                        msgcom.message_box(msgcom.message_error, e_str)
+                        self.global_message.appendPlainText(e_str)
+                        return
 
             rtitle, rtext = hymal.get_responsive_reading_by_chapter(ir, self.hymnal_db_file_path.text())
             
@@ -1152,7 +1172,7 @@ class QLivePPT(QtGui.QWidget):
         if not path: return
         self.txtppt_save_path.setText(path)
 
-    def create_txtppt(self):
+    def convert_txt_pptx(self):
         text = self.txtppt_edit.toPlainText().split('\n')
 
         for i, t in enumerate(text):
@@ -1183,7 +1203,14 @@ class QLivePPT(QtGui.QWidget):
             ans = QtGui.QMessageBox.question(self, 'Continue?', 
                     '%s already exist!'%sfn, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
             if ans == QtGui.QMessageBox.No: return
-            else: os.remove(sfn)
+            else:
+                try:
+                    os.remove(sfn)
+                except OSError as e:
+                    if is_access_denied(e_str):
+                        e_str += "%s is already opened!"%sfn
+                        msgcom.message_box(msgcom.message_error, e_str)
+                        return
 
         self.global_message.appendPlainText('... Create TxtPPT')
         dest_ppt = pptx.Presentation(_default_pptx_template)
@@ -1236,7 +1263,7 @@ class QLivePPT(QtGui.QWidget):
         clear_btn.clicked.connect(self.clear_txtppt)
 
         run_btn = QtGui.QPushButton('Create', self)
-        run_btn.clicked.connect(self.create_txtppt)
+        run_btn.clicked.connect(self.convert_txt_pptx)
         laybtn.addWidget(clear_btn)
         laybtn.addWidget(run_btn)
 
@@ -1492,17 +1519,21 @@ class QLivePPT(QtGui.QWidget):
                 else:
                     try:
                         os.remove(sfn)
-                    except Exception e:
+                    except OSError as e:
                         e_str = str(e)
-                        msgcom.message_box(msgcom.message_error, e_str)
-                        return
+                        if is_access_denied(e_str):
+                            e_str += "%s is already opened!"%sfn
+                            msgcom.message_box(msgcom.message_error, e_str)
+                            return
             else: 
                 try:
                     os.remove(sfn)
-                except Exception as e:
+                except OSError as e:
                     e_str = str(e)
-                    msgcom.message_box(msgcom.message_error, e_str)
-                    return
+                    if is_access_denied(e_str):
+                        e_str += "%s is already opened!"%sfn
+                        msgcom.message_box(msgcom.message_error, e_str)
+                        return
                     
             self.ppt_hymal.sx  = float(self.hymal_info_table.item(0,1).text())
             self.ppt_hymal.sy  = float(self.hymal_info_table.item(1,1).text())
@@ -2218,8 +2249,14 @@ class QLivePPT(QtGui.QWidget):
                     '%s already exist!'%sfn, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
             if ans == QtGui.QMessageBox.No: return
             else:
-                os.remove(sfn)
-                
+                try:
+                    os.remove(sfn)
+                except OSError as e:
+                    if is_access_denied(e_str):
+                        e_str += "%s is already opened!"%sfn
+                        msgcom.message_box(msgcom.message_error, e_str)
+                        self.global_message.appendPlainText(e_str)
+                        return 
         try:
             self.global_message.appendPlainText('... Open Presentation')
             # create new presentation object
@@ -2668,7 +2705,15 @@ class QLivePPT(QtGui.QWidget):
             ans = QtGui.QMessageBox.question(self, 'Continue?', 
                     '%s already exist!'%sfn, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
             if ans == QtGui.QMessageBox.No: return
-            else: os.remove(sfn)
+            else:
+                try:
+                    os.remove(sfn)
+                except OSError as e:
+                    e_str = str(e)
+                    if is_access_denied(e_str):
+                        e_str += "%s is already opened!"%sfn
+                        msgcom.message_box(msgcom.message_error, e_str)
+                        return
             
         self.global_message.appendPlainText('... Create Subtitle PPT')
         try:
