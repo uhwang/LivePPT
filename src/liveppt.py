@@ -29,6 +29,7 @@
                  ImportError: (cannot import name _elementpath) xml.etree.pyd'
                  Add 'lxml.etree', 'lxml._elementpath' to 'include'
               4) Add default.pptx to Document for creating pptx
+    03/01/21  Rewrite hymal.py for chorus and create_hymal_ppt for numbering
 
     Convert praise ppt to subtitle ppt for live streaming
 
@@ -106,6 +107,7 @@ import msoLine
 import msoDash
 import msoShadow
 import hymal
+import msgcom
 
 try:
     import win32com.client
@@ -942,13 +944,17 @@ class QLivePPT(QtGui.QWidget):
                 else:
                     try:
                         os.remove(sfn)
-                    except:
-                        pass
+                    except Exception e:
+                        e_str = str(e)
+                        msgcom.message_box(msgcom.message_error, e_str)
+                        return
             else: 
                 try:
                     os.remove(sfn)
-                except:
-                    pass
+                except Exception e:
+                    e_str = str(e)
+                    msgcom.message_box(msgcom.message_error, e_str)
+                    return
 
             rtitle, rtext = hymal.get_responsive_reading_by_chapter(ir, self.hymnal_db_file_path.text())
             
@@ -1486,13 +1492,17 @@ class QLivePPT(QtGui.QWidget):
                 else:
                     try:
                         os.remove(sfn)
-                    except:
-                        pass
+                    except Exception e:
+                        e_str = str(e)
+                        msgcom.message_box(msgcom.message_error, e_str)
+                        return
             else: 
                 try:
                     os.remove(sfn)
-                except:
-                    pass
+                except Exception as e:
+                    e_str = str(e)
+                    msgcom.message_box(msgcom.message_error, e_str)
+                    return
                     
             self.ppt_hymal.sx  = float(self.hymal_info_table.item(0,1).text())
             self.ppt_hymal.sy  = float(self.hymal_info_table.item(1,1).text())
@@ -1508,8 +1518,9 @@ class QLivePPT(QtGui.QWidget):
             dest_ppt.slide_width = pptx.util.Inches(self.ppt_hymal.wid)
             dest_ppt.slide_height = pptx.util.Inches(self.ppt_hymal.hgt)
             blank_slide_layout = dest_ppt.slide_layouts[6]
-            
-            for l1, l in enumerate(lyric):
+
+            l_num = 1            
+            for l_list in lyric:
                 dest_slide = self.add_empty_slide(dest_ppt, blank_slide_layout, 
                 self.ppt_hymal.back_col)
                 txt_box = self.add_textbox(dest_slide, 
@@ -1522,9 +1533,14 @@ class QLivePPT(QtGui.QWidget):
                 self.set_textbox(txt_f, MSO_AUTO_SIZE.NONE, MSO_ANCHOR.MIDDLE, 
                 MSO_ANCHOR.MIDDLE, 0, 0, 0, 0)
 
-                for l2 in l:
+                chorus = False
+                for l_text in l_list:
                     p = txt_f.add_paragraph()
-                    p.text = l2
+                    if l_text.find(hymal._corus_delimiter) >= 0:
+                        l_text = l_text.replace(hymal._corus_delimiter, '')
+                        chorus = True
+                        
+                    p.text = l_text
                     self.set_paragraph(p, PP_ALIGN.CENTER, 
                                 self.ppt_hymal.font_name, 
                                 self.ppt_hymal.font_size,
@@ -1539,7 +1555,15 @@ class QLivePPT(QtGui.QWidget):
                                 True)
                                 
                 p = txt_f.add_paragraph()
-                p.text = '(찬송가 %d장 %d절)'%(chap, l1+1)
+                
+                if len(lyric) == 1:
+                    p.text = '(찬송가 %d장)'%(chap)
+                elif chorus:
+                    p.text = '(찬송가 %d장 후렴)'%(chap)
+                else:
+                    p.text = '(찬송가 %d장 %d절)'%(chap, l_num)
+                    l_num += 1
+                    
                 self.set_paragraph(p, PP_ALIGN.CENTER, 
                                 self.ppt_hymal.font_name, 
                                 20,
