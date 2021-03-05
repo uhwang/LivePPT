@@ -262,8 +262,7 @@ def get_slide_size(t):
     t2 = t1[1][1:-1].split(':')
     return float(t2[0]), float(t2[1])
 
-    
-def is_access_denied(e_str):
+def access_denied(e_str):
     key = ["access", "denied", "used", "another"]
     return any(x in e_str.lower() for x in key)
 
@@ -589,19 +588,6 @@ class ppt_slide_info:
         return "Wid  : %2.4f\nHgt  : %2.4f\nColor: %s\nDCopy: %s"%(\
             self.wid,self.hgt,str(self.back_col),str(self.deep_copy))
 
-#class ppt_paragraph:
-#    def __init__(self):
-#        self.font = ''
-#        self.
-#class ppt_responsive_reading(ppt_slide_info, ppt_textbox_info):
-#    def __init__(self):
-#        w, h = get_slide_size(_slide_size_type[_default_hymal_slide_size_index])
-#        ppt_slide_info.__init__(self,w,h)
-#        ppt_textbox_info.__init__(self, 0,0,w,h,_default_hymal_font_size)
-#        
-#        self.title = ''
-#        self.title_
-
 # use max size: sx=0, sy=0, wid=max wid, hgt=max hgt
 class ppt_hymal_info(ppt_slide_info, ppt_textbox_info):
     def __init__(self):
@@ -612,7 +598,6 @@ class ppt_hymal_info(ppt_slide_info, ppt_textbox_info):
         self.chap_font_size = _default_hymal_chap_font_size
         self.back_col = ppt_color(0,32,96)
 
-#class QLivePPT(QtGui.QMainWindow):
 class QLivePPT(QtGui.QWidget):
     def __init__(self):
         super(QLivePPT, self).__init__()
@@ -764,9 +749,7 @@ class QLivePPT(QtGui.QWidget):
         
         layout.addRow(lay1)
         layout.addWidget(self.respread_format_tbl)
-        #layout.addRow(self.respread_edit)
         layout.addRow(lay2)
-        #layout.addRow(lay3)
         layout.addRow(lay4)
         self.respread_tab.setLayout(layout)
     
@@ -830,7 +813,7 @@ class QLivePPT(QtGui.QWidget):
                         os.remove(sfn)
                     except OSError as e:
                         e_str = str(e)
-                        if is_access_denied(e_str):
+                        if access_denied(e_str):
                             e_str += "%s is already opened!"%sfn
                             msgcom.message_box(msgcom.message_error, e_str)
                             self.global_message.appendPlainText(e_str)
@@ -839,7 +822,7 @@ class QLivePPT(QtGui.QWidget):
                     os.remove(sfn)
                 except OSError as e:
                     e_str = str(e)
-                    if is_access_denied(e_str):
+                    if access_denied(e_str):
                         e_str += "%s is already opened!"%sfn
                         msgcom.message_box(msgcom.message_error, e_str)
                         self.global_message.appendPlainText(e_str)
@@ -960,7 +943,7 @@ class QLivePPT(QtGui.QWidget):
                         os.remove(sfn)
                     except OSError as e:
                         e_str = str(e)
-                        if is_access_denied(e_str):
+                        if access_denied(e_str):
                             e_str += "%s is already opened!"%sfn
                             msgcom.message_box(msgcom.message_error, e_str)
                             self.global_message.appendPlainText(e_str)
@@ -970,7 +953,7 @@ class QLivePPT(QtGui.QWidget):
                     os.remove(sfn)
                 except OSError as e:
                     e_str = str(e)
-                    if is_access_denied(e_str):
+                    if access_denied(e_str):
                         e_str += "%s is already opened!"%sfn
                         msgcom.message_box(msgcom.message_error, e_str)
                         self.global_message.appendPlainText(e_str)
@@ -1207,7 +1190,7 @@ class QLivePPT(QtGui.QWidget):
                 try:
                     os.remove(sfn)
                 except OSError as e:
-                    if is_access_denied(e_str):
+                    if access_denied(e_str):
                         e_str += "%s is already opened!"%sfn
                         msgcom.message_box(msgcom.message_error, e_str)
                         return
@@ -1521,7 +1504,7 @@ class QLivePPT(QtGui.QWidget):
                         os.remove(sfn)
                     except OSError as e:
                         e_str = str(e)
-                        if is_access_denied(e_str):
+                        if access_denied(e_str):
                             e_str += "%s is already opened!"%sfn
                             msgcom.message_box(msgcom.message_error, e_str)
                             return
@@ -1530,7 +1513,7 @@ class QLivePPT(QtGui.QWidget):
                     os.remove(sfn)
                 except OSError as e:
                     e_str = str(e)
-                    if is_access_denied(e_str):
+                    if access_denied(e_str):
                         e_str += "%s is already opened!"%sfn
                         msgcom.message_box(msgcom.message_error, e_str)
                         return
@@ -2252,7 +2235,7 @@ class QLivePPT(QtGui.QWidget):
                 try:
                     os.remove(sfn)
                 except OSError as e:
-                    if is_access_denied(e_str):
+                    if access_denied(e_str):
                         e_str += "%s is already opened!"%sfn
                         msgcom.message_box(msgcom.message_error, e_str)
                         self.global_message.appendPlainText(e_str)
@@ -2710,7 +2693,7 @@ class QLivePPT(QtGui.QWidget):
                     os.remove(sfn)
                 except OSError as e:
                     e_str = str(e)
-                    if is_access_denied(e_str):
+                    if access_denied(e_str):
                         e_str += "%s is already opened!"%sfn
                         msgcom.message_box(msgcom.message_error, e_str)
                         return
