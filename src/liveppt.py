@@ -263,7 +263,7 @@ def get_slide_size(t):
     return float(t2[0]), float(t2[1])
 
 def access_denied(e_str):
-    key = ["access", "denied", "used", "another"]
+    key = ["access", "denied", "used", "another", "permission"]
     return any(x in e_str.lower() for x in key)
 
 class QUserWorshipType(QtGui.QDialog):
