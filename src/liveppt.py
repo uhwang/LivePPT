@@ -200,6 +200,7 @@ _hymaltab_text   = "Hymal"
 _txtppt_text     = "TxtPPT"
 _fxtab_text      = "Fx"
 _respread_text   = "RespRd"
+_bibppt_text     = "BibPPT"
 _messagetab_text = "Message"
 _default_pptx_template = "default.pptx"
 
@@ -263,9 +264,76 @@ def get_slide_size(t):
     return float(t2[0]), float(t2[1])
 
 def access_denied(e_str):
-    key = ["access", "denied", "used", "another", "permission"]
+    key = ["access", "denied", "used", "another"]
     return any(x in e_str.lower() for x in key)
 
+
+class QBibleChecker(QtGui.QDialog):
+    def __init__(self, lppt):
+        super(QBibleChecker, self).__init__()
+        self.initUI()
+
+    def check_db_tab_UI(self):
+        layout = QtGui.QFormLayout()
+    
+        kbib_group = QtGui.QGroupBox('Korean Bible')
+        kbib_layout = QtGui.QGridLayout()
+        kcheck_list = bwxref.get_kbible_check_list()
+        self.kbible_checker = {}
+        ncol = 3
+        row = 0
+    
+        for i, kbib in enumerate(bwxref.get_kbible_list()):
+            checker = QtGui.QCheckBox(kbib, self)
+            checker.setChecked(kcheck_list[kbib])
+            self.kbible_checker[kbib] = checker
+            col = i % ncol
+            row = row+1 if i is not 0 and i%ncol is 0 else row
+            kbib_layout.addWidget(self.kbible_checker[kbib], row, col)
+            
+        kbib_group.setLayout(kbib_layout)
+        layout.addRow(kbib_group)		
+        
+        ebib_group = QtGui.QGroupBox('English Bible')
+        ebib_layout = QtGui.QGridLayout()
+        echeck_list = bwxref.get_ebible_check_list()
+        self.ebible_checker = {}
+        ncol = 3
+        row = 0
+    
+        for i, ebib in enumerate(bwxref.get_ebible_list()):
+            checker = QtGui.QCheckBox(ebib, self)
+            checker.setChecked(echeck_list[ebib])
+            self.ebible_checker[ebib] = checker
+            col = i % ncol
+            row = row+1 if i is not 0 and i%ncol is 0 else row
+            ebib_layout.addWidget(self.ebible_checker[ebib], row, col)
+            
+        ebib_group.setLayout(ebib_layout)
+        layout.addRow(ebib_group)		
+        
+        
+        hgbib_group = QtGui.QGroupBox('Hebrew/Greek Bible')
+        hgbib_layout = QtGui.QGridLayout()
+        hgcheck_list = bwxref.get_hgbible_check_list()
+        self.hgbible_checker = {}
+        ncol = 3
+        row = 0
+        for i, hgbib in enumerate(bwxref.get_hgbible_list()):
+            checker = QtGui.QCheckBox(hgbib, self)
+            checker.setChecked(hgcheck_list[hgbib])
+            self.hgbible_checker[hgbib] = checker
+            #checker.setEnabled(True)
+            col = i % ncol
+            row = row+1 if i is not 0 and i%ncol is 0 else row
+            hgbib_layout.addWidget(self.hgbible_checker[hgbib], row, col)
+        hgbib_group.setLayout(hgbib_layout)  
+        layout.addRow(hgbib_group)	
+        
+        self.check_db_tab.setLayout(layout)
+    
+    
+    
 class QUserWorshipType(QtGui.QDialog):
     def __init__(self, lppt):
         super(QUserWorshipType, self).__init__()
@@ -622,14 +690,17 @@ class QLivePPT(QtGui.QWidget):
         self.respread_tab = QtGui.QWidget()
         self.message_tab = QtGui.QWidget()
         self.txtppt_tab = QtGui.QWidget()
+        self.bibppt_tab = QtGui.QWidget()
+        
         self.tabs.addTab(self.ppt_tab, _ppttab_text)
         self.tabs.addTab(self.slide_tab, _slidetab_text)
         self.tabs.addTab(self.fx_tab, _fxtab_text)
         self.tabs.addTab(self.hymal_tab, _hymaltab_text)
         self.tabs.addTab(self.respread_tab, _respread_text)
         self.tabs.addTab(self.txtppt_tab, _txtppt_text)
+        self.tabs.addTab(self.bibppt_tab,_bibppt_text)
         self.tabs.addTab(self.message_tab, _messagetab_text)
-
+        
         self.message_tab_UI()
         self.ppt_tab_UI()
         self.slide_tab_UI()
@@ -637,6 +708,8 @@ class QLivePPT(QtGui.QWidget):
         self.respreading_tab_UI()
         self.fx_tab_UI()
         self.txtppt_tab_UI()
+        self.bibppt_tab_UI()
+        
         tab_layout.addWidget(self.tabs)
         self.form_layout.addRow(tab_layout)
         self.setLayout(self.form_layout)
@@ -645,7 +718,44 @@ class QLivePPT(QtGui.QWidget):
         self.setWindowIcon(QtGui.QIcon(QtGui.QPixmap(icon_liveppt.table)))
         self.show()
 
+    def set_bibppt_slide_size(self):
+        return
+    
+    def create_bible_ppt(self):
+        return
         
+    def change_bible_db_path(self):
+        return
+        
+    def bibppt_tab_UI(self):
+        layout = QtGui.QFormLayout()
+            
+        grid = QtGui.QGridLayout()
+        grid.addWidget(QtGui.QLabel("Search"), 0, 0)
+        self.bible_verse = QtGui.QLineEdit()
+        self.bible_verse.setToolTip("창 1:1-2")
+        grid.addWidget(self.bible_verse, 0, 1)
+            
+        grid.addWidget(QtGui.QLabel('Slide Size'), 1, 0)
+        self.choose_bibppt_slide_size = QtGui.QComboBox()
+        self.choose_bibppt_slide_size.addItems(_slide_size_type)
+        self.choose_bibppt_slide_size.setCurrentIndex(0)
+        self.choose_bibppt_slide_size.currentIndexChanged.connect(self.set_bibppt_slide_size)
+        grid.addWidget(self.choose_bibppt_slide_size, 1, 1)    
+            
+        grid.addWidget(QtGui.QLabel('Bible DB'), 2, 0)
+        self.bible_db_file_path  = QtGui.QLineEdit(os.getcwd())
+        self.bible_db_file_path_btn = QtGui.QPushButton('', self)
+        self.bible_db_file_path_btn.clicked.connect(self.change_bible_db_path)
+        self.bible_db_file_path_btn.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_folder_open.table)))
+        self.bible_db_file_path_btn.setIconSize(QtCore.QSize(16,16))
+        grid.addWidget(self.bible_db_file_path, 2, 1)
+        grid.addWidget(self.bible_db_file_path_btn, 2, 2)
+        
+        layout.addRow(grid)
+        
+        self.bibppt_tab.setLayout(layout)
+
     '''
     responsive reading format
     text_box sx sy wid hgt
@@ -1210,9 +1320,9 @@ class QLivePPT(QtGui.QWidget):
         hgt = float(self.hymal_info_table.item(3,1).text())
         font_name = self.hymal_info_table.item(4,1).text()
 
-        back_col = get_rgb(self.hymal_info_table.item(7,1).text())
         font_col  = get_rgb(self.hymal_info_table.item(5,1).text())
         font_size = float(self.hymal_info_table.item(6,1).text())
+        back_col = get_rgb(self.hymal_info_table.item(7,1).text())
         
         for in_text in line_text:
             dest_slide = self.add_empty_slide(dest_ppt, blank_slide_layout, back_col)
@@ -1236,7 +1346,7 @@ class QLivePPT(QtGui.QWidget):
             return
 
         self.global_message.appendPlainText('... Create TxtPPT: success\n')
-        #QtGui.QMessageBox.question(QtGui.QWidget(), 'Completed!', sfn, QtGui.QMessageBox.Yes)
+        QtGui.QMessageBox.question(QtGui.QWidget(), 'Success', sfn, QtGui.QMessageBox.Yes)
 
     def txtppt_tab_UI(self):
         layout = QtGui.QFormLayout()
