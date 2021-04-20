@@ -1531,24 +1531,26 @@ class QLivePPT(QtGui.QWidget):
         self.hymal_save_path.setText(path)
     
     def pick_hymal_bk_color(self):
-        col = QtGui.QColorDialog.getColor()
+        bc = self.ppt_hymal.back_col
+        col = QtGui.QColorDialog.getColor(QtGui.QColor(bc.r, bc.g, bc.b))
         if col.isValid():
             r,g,b,a = col.getRgb()
-            self.ppt_hymal.bk_col = ppt_color(r,g,b)
-            self.hymal_info_table.item(8,1).setText("%03d,%03d,%03d"%(r, g, b))
+            self.ppt_hymal.back_col = ppt_color(r,g,b)
+            self.hymal_info_table.item(7,1).setText("%03d,%03d,%03d"%(r, g, b))
         
     def pick_hymal_font_color(self):
-        col = QtGui.QColorDialog.getColor()
+        fc = self.ppt_hymal.font_col
+        col = QtGui.QColorDialog.getColor(QtGui.QColor(fc.r, fc.g, fc.b))
         if col.isValid():
             r,g,b,a = col.getRgb()
             self.ppt_hymal.font_col = ppt_color(r,g,b)
-            self.hymal_info_table.item(6,1).setText("%03d,%03d,%03d"%(r, g, b))
+            self.hymal_info_table.item(5,1).setText("%03d,%03d,%03d"%(r, g, b))
         
     def pick_hymal_font(self):
         font, valid = QtGui.QFontDialog.getFont()
         if valid: 
             self.ppt_hymal.font_name = font.family()
-            self.hymal_info_table.item(5,1).setText(font.family())	
+            self.hymal_info_table.item(4,1).setText(font.family())	
             
     # hymal: 1-639 
     def check_hymal_num_range(self, low, high):
@@ -1949,21 +1951,24 @@ class QLivePPT(QtGui.QWidget):
             self.textbox_gradient_color2_btn.show()
             
     def pick_textbox_fill_solid_color(self):
-        col = QtGui.QColorDialog.getColor()
+        fc = self.ppt_textbox.fill.solid_col
+        col = QtGui.QColorDialog.getColor(QtGui.QColor(fc.r, fc.g, fc.b))
         if col.isValid():
             r,g,b,a = col.getRgb()
             self.textbox_solid_color.setText("%03d,%03d,%03d"%(r, g, b))
             self.ppt_textbox.fill.solid_col = ppt_color(r,g,b)
     
     def pick_textbox_fill_gradient_color1(self):
-        col = QtGui.QColorDialog.getColor()
+        gc = self.ppt_textbox.fill.gradient_col1
+        col = QtGui.QColorDialog.getColor(QtGui.QColor(gc.r, gc.g, gc.b))
         if col.isValid():
             r,g,b,a = col.getRgb()
             self.textbox_gradient_color1.setText("%03d,%03d,%03d"%(r, g, b))
             self.ppt_textbox.fill.gradient_col1 = ppt_color(r,g,b)
     
     def pick_textbox_fill_gradient_color2(self):
-        col = QtGui.QColorDialog.getColor()
+        gc = self.ppt_textbox.fill.gradient_col2
+        col = QtGui.QColorDialog.getColor(QtGui.QColor(gc.r, gc.g, gc.b))
         if col.isValid():
             r,g,b,a = col.getRgb()
             self.textbox_gradient_color2.setText("%03d,%03d,%03d"%(r, g, b))
@@ -1988,7 +1993,8 @@ class QLivePPT(QtGui.QWidget):
             self.ppt_slide.deep_copy = False
             
     def pick_text_outline_color(self):
-        col = QtGui.QColorDialog.getColor()
+        lc = self.ppt_textbox.fx.outline.col
+        col = QtGui.QColorDialog.getColor(QtGui.QColor(lc.r, lc.g, lc.b))
         if col.isValid():
             r,g,b,a = col.getRgb()
             self.ppt_textbox.fx.outline.col = ppt_color(r,g,b)
@@ -2087,14 +2093,16 @@ class QLivePPT(QtGui.QWidget):
         return
     
     def pick_slide_back_color(self):
-        col = QtGui.QColorDialog.getColor()
+        bc = self.ppt_slide.slide_back_col
+        col = QtGui.QColorDialog.getColor(QtGui.QColor(bc.r, bc.g, bc.b))
         if col.isValid():
             r,g,b,a = col.getRgb()
             self.ppt_slide.slide_back_col = ppt_color(r,g,b)
             self.slide_back_col.setText("%03d,%03d,%03d"%(r, g, b))
     
     def pick_font_color(self):
-        col = QtGui.QColorDialog.getColor()
+        fc = self.ppt_textbox.font_col
+        col = QtGui.QColorDialog.getColor(QtGui.QColor(fc.r, fc.g, fc.b))
         if col.isValid():
             r,g,b,a = col.getRgb()
             self.ppt_textbox.font_col = ppt_color(r,g,b)

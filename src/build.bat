@@ -1,4 +1,4 @@
-del /y .\LivePPT\.
+del /Q .\LivePPT\.
 
 python setup.py build
 

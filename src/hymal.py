@@ -48,38 +48,11 @@ def create_hyaml_py(db_file):
 _corus_delimiter = '[후렴]'
 _find_nlyric = re.compile("\d")
 _amen = "아멘"
-'''
+
 def parse_hymal(hymal_str):
     h1 = hymal_str.replace('<b>', '')
-    h2 = h1.replace('</b>', '')
+    h2 = h1.replace('</b>', '')    
     h3 = h2.replace('<br>', '\n')
-    h4 = h3.replace('\n\n', '\n')
-    s1=re.sub(r"(<.*?>)(?!<)", '', h4)
-    s2=re.sub(r"\[.*?\]", '', s1)
-    #s2 = s1
-    #h2 = re.sub("[<b>][</b]", hymal_str, '')
-    #h3 = re.sub("[<br>]", h2, '\n')
-    #h4 = re.sub('\n\n', h3, '\n')
-    h5 = re.split('\d. ', s2)
-    if h5[0] == '': del h5[0]
-    
-    hymal_list = []
-    nl = len(h5)
-    for i in range(nl):
-        v = h5[i].split('\n')
-        del v[-1]
-        for j in range(len(v)): 
-            v[j] = v[j].strip()
-        hymal_list.append(v)
-    
-    return hymal_list
-'''
-def parse_hymal(hymal_str):
-    #print(hymal_str)
-    h1 = hymal_str.replace('<b>', '')
-    h2 = h1.replace('</b>', '')
-    h3 = h2.replace('<br>', '\n')
-    #print(h3)
     h4 = h3.replace('\n\n', '\n')
     s1=re.sub(r"(<.*?>)(?!<)", '', h4)
     h5 = re.split('\d. ', s1)
@@ -94,21 +67,39 @@ def parse_hymal(hymal_str):
     # -----------------------------------------------------------
  
     # find corus
+    h7 =[]
     if h5[0].find(_corus_delimiter) >= 0:
         h6 = h5[0].split(_corus_delimiter)
-        #print(h6)
-        h5.pop(0)
-        h5.insert(0, ''.join(h6))
+        corus = _corus_delimiter + h6[1].strip()
+        h7.append([h6[0]])
+        h7.append([corus])
         
         # add corus to the other verses
         for ih in range(1, len(h5)):
-            h5[ih] = ''.join([h5[ih], h6[1]])
-        
+            h7.append([h5[ih]])
+            h7.append([corus])
+    else:
+        h7 = [[h6] for h6 in h5]
+    '''
     hymal_list = []
     nl = len(h5)
     for i in range(nl):
         v = h5[i].split('\n')
         del v[-1]
+        for j in range(len(v)):
+            vj = v[j].strip()
+            if vj[-2:] == _amen:
+                vj = vj[0:-2]
+            v[j] = vj #v[j].strip()
+        hymal_list.append(v)
+    '''
+    #         verse 1        corus           verse 2
+    # h7=[['..\n..\n'],['[후렴]..\n..\n'],['..\n..\n'],['[후렴]..\n..\n']]
+    #
+    hymal_list = []
+    for h8 in h7:
+        v = h8[0].split('\n')
+        if v[-1] == '': del v[-1]
         for j in range(len(v)):
             vj = v[j].strip()
             if vj[-2:] == _amen:
@@ -132,9 +123,8 @@ def get_responsive_reading_by_chapter(num, db_file):
         
     new_num = num +ref_of_responsive_reading
     sql = 'SELECT title, htext from {} where id = {}'.format(table_name, new_num)
-    #cur = db_cur.execute(sql).fetchone()
     rtup = db_cur.execute(sql).fetchone()
-    #rtup = cur.fetchone()
+
     return rtup[0], parse_hymal(rtup[1]) 
     
 def get_hymal_by_chapter(num, db_file):
@@ -183,6 +173,7 @@ def get_hymal_by_title(title, db_file):
 def get_hymal_by_keyword(keyword):
     return
 	
-#print(get_hymal_by_chapter(1, _default_db_file))
+#print(get_hymal_by_chapter(250, _default_db_file))
 #print(get_responsive_reading_by_chapter(701))
 #print(parse_hymal("<b>1</b>. 내 평생에 가는길 순탄하여 <br>늘 잔잔한강 같든지 큰 풍파로 <br>무섭고 어렵든지나의 영혼은 늘 편하다<br><small><font color='#0099CC'>[후렴]</font></small> 내 영혼 평안해 <br>내 영혼 내영혼 평안해<br><br><b>2</b>. 저 마귀는 우리를 삼키려고<br>입 벌리고 달려와도 예수는<br>우리의 대장되니 끝내 싸워서 이기리라<br><br><b>3</b>. 내 지은 죄 주홍빛같더라도 <br>주 예수께 다 아뢰면 그 십자가<br>피로써 다 씻으사 흰눈보다 정하리라<br><br><b>4</b>. 저 공중에 구름이 일어나며<br>큰 나팔이 울릴때에 주 오셔서 <br>세상을 심판해도 나의 영혼은 겁 없으리<br>"))
+#print(parse_hymal("<b>1</b>. 내 평생에 가는길 순탄하여 <br>늘 잔잔한강 같든지 큰 풍파로 <br>무섭고 어렵든지나의 영혼은 늘 편하다<br><small><font color='#0099CC'>[후렴]</font></small> 내 영혼 평안해 <br>내 영혼 내영혼 평안해<br><br>"))
