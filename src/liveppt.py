@@ -1280,10 +1280,10 @@ class QLivePPT(QtGui.QWidget):
             idx_list = [idx + 1 for idx, val in enumerate(text) if val == ''] 
             line_text = [text[i:j] 
                             for i, j in zip([0] + idx_list, 
-                                                idx_list + (
-                                                            [size] if idx_list[-1] != size else []
-                                                            )
-                                        )
+                                idx_list + (
+                                    [size] if idx_list[-1] != size else []
+                                    )
+                                )
                         ] 
 
         fn = self.txtppt_fname.text()
