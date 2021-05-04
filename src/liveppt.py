@@ -31,6 +31,7 @@
               4) Add default.pptx to Document for creating pptx
     03/01/21  Rewrite hymal.py for chorus and create_hymal_ppt for numbering
     03/02/21  File deleting exception
+    05/04/21  Extract Txt from PPTX
 
     Convert praise ppt to subtitle ppt for live streaming
 
@@ -138,6 +139,7 @@ import icon_respread
 import icon_respread_sub
 import icon_clear
 import icon_restore
+import icon_ppt_txt
 
 class ppt_color:
     def __init__(self, r=255, g=255, b=255):
@@ -944,7 +946,8 @@ class QLivePPT(QtGui.QWidget):
             rtext = rtext[0]
             wid, hgt = float(rsize[0]), float(rsize[1])
             pbx = self.ppt_textbox
-            dest_ppt = pptx.Presentation(_default_pptx_template)
+            #dest_ppt = pptx.Presentation(_default_pptx_template)
+            dest_ppt = pptx.Presentation(self.get_default_pptx())
             dest_ppt.slide_width = pptx.util.Inches(wid)
             dest_ppt.slide_height = pptx.util.Inches(hgt)
             blank_slide_layout = dest_ppt.slide_layouts[6]
@@ -1078,7 +1081,8 @@ class QLivePPT(QtGui.QWidget):
             
             rsize = rfmt_list[0][1].split(',')
             
-            dest_ppt = pptx.Presentation(_default_pptx_template)
+            #dest_ppt = pptx.Presentation(_default_pptx_template)
+            dest_ppt = pptx.Presentation(self.get_default_pptx())
             dest_ppt.slide_width = pptx.util.Inches(float(rsize[0]))
             dest_ppt.slide_height = pptx.util.Inches(float(rsize[1]))
             blank_slide_layout = dest_ppt.slide_layouts[6]
@@ -1306,7 +1310,8 @@ class QLivePPT(QtGui.QWidget):
                         return
 
         self.global_message.appendPlainText('... Create TxtPPT')
-        dest_ppt = pptx.Presentation(_default_pptx_template)
+        #dest_ppt = pptx.Presentation(_default_pptx_template)
+        dest_ppt = pptx.Presentation(self.get_default_pptx())
         dest_ppt.slide_width = pptx.util.Inches(self.ppt_hymal.wid)
         dest_ppt.slide_height = pptx.util.Inches(self.ppt_hymal.hgt)
         blank_slide_layout = dest_ppt.slide_layouts[6]
@@ -1640,7 +1645,8 @@ class QLivePPT(QtGui.QWidget):
             self.ppt_hymal.font_size = float(self.hymal_info_table.item(6,1).text())
             self.ppt_hymal.font_col  = ft_col
             
-            dest_ppt = pptx.Presentation(_default_pptx_template)
+            #dest_ppt = pptx.Presentation(_default_pptx_template)
+            dest_ppt = pptx.Presentation(self.get_default_pptx())
             dest_ppt.slide_width = pptx.util.Inches(self.ppt_hymal.wid)
             dest_ppt.slide_height = pptx.util.Inches(self.ppt_hymal.hgt)
             blank_slide_layout = dest_ppt.slide_layouts[6]
@@ -2268,9 +2274,11 @@ class QLivePPT(QtGui.QWidget):
         self.shadow_btn.setToolTip('Shadow Effect on Subtitle')
                 
         self.merge_btn = QtGui.QPushButton('', self)
-        self.merge_btn.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_merge.table)))
+        #self.merge_btn.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_merge.table)))
+        self.merge_btn.setIcon(QtGui.QIcon(QtGui.QPixmap(icon_ppt_txt.table)))
         self.merge_btn.setIconSize(QtCore.QSize(isz,isz))
-        self.merge_btn.clicked.connect(self.run_merge_ppt)
+        #self.merge_btn.clicked.connect(self.run_merge_ppt)
+        self.merge_btn.clicked.connect(self.run_ppt_txt)
         self.merge_btn.setToolTip('N/A')
         
         self.ppt_pptx_btn = QtGui.QPushButton('', self)
@@ -2327,6 +2335,46 @@ class QLivePPT(QtGui.QWidget):
         
     def copy_srcpath_to_dest(self):
         self.save_directory_path.setText(self.src_directory_path.text())
+        
+    def run_ppt_txt(self):
+        nppt = self.ppt_list_table.rowCount()
+        if nppt == 0: return
+        self.global_message.appendPlainText('... PPT to TXT')
+
+        for npr in range(nppt):
+            path = self.ppt_list_table.item(npr, 2).text()
+            file = self.ppt_list_table.item(npr,0).text()
+            ppt_file = os.path.join(path, file)
+            txt_file = os.path.join(self.save_directory_path.text(), 
+                        "%s.txt"%os.path.splitext(file)[0])
+            
+            try:
+                os.remove(txt_file)
+            except OSError as e:
+                e_str = str(e)
+                if access_denied(e_str):
+                    e_str += "%s is already opened!"%sfn
+                    msgcom.message_box(msgcom.message_error, e_str)
+                    continue
+            
+            fp = open(txt_file, "wt")
+            self.global_message.appendPlainText('... Open: %s'%txt_file)
+            
+            try:
+                prs = pptx.Presentation(ppt_file)
+                for slide in prs.slides:
+                    for shape in slide.shapes:
+                        if hasattr(shape, "text"):
+                            fp.write("%s\n"%shape.text)
+                
+            except Exception as e:
+                self.global_message.appendPlainText(str(e))
+                return
+            fp.close()
+            self.global_message.appendPlainText('... Close')
+        self.global_message.appendPlainText('... Success')
+        QtGui.QMessageBox.question(QtGui.QWidget(), 'completed!', 'PPTX to TXT', 
+        QtGui.QMessageBox.Yes)
         
     def run_merge_ppt(self):
         
@@ -2627,6 +2675,10 @@ class QLivePPT(QtGui.QWidget):
         self.ppt_hymal = ppt_hymal_info()
         self.ppt_shadow = ppt_shadow_info() 
         self.ppt_fx = ppt_fx_info()
+        self.application_path = os.getcwd()
+        
+    def get_default_pptx(self):
+        return os.path.join(self.application_path, _default_pptx_template)
         
     def custom_worship_type(self):
         cid = self.publish_title.currentIndex()
@@ -2648,9 +2700,11 @@ class QLivePPT(QtGui.QWidget):
     def get_save_directory_path(self):
         startingDir = os.getcwd() 
         path = QtGui.QFileDialog.getExistingDirectory(None, 'Save folder', startingDir, 
+        #path = QtGui.QFileDialog.getExistingDirectory(None, 'Save folder', '', 
         QtGui.QFileDialog.ShowDirsOnly)
         if not path: return
         self.save_directory_path.setText(path)
+        os.chdir(path)
     
     def open_ppt_file(self):
         title = self.open_btn.text()
@@ -2819,7 +2873,8 @@ class QLivePPT(QtGui.QWidget):
         self.global_message.appendPlainText('... Create Subtitle PPT')
         try:
             # 2/14/21 py2exe empty presentaion doesn't work
-            dest_ppt = pptx.Presentation(_default_pptx_template)
+            #dest_ppt = pptx.Presentation(_default_pptx_template)
+            dest_ppt = pptx.Presentation(self.get_default_pptx())
         except Exception as e:
             e_str = "Error: can't open pptx document\n%s"%str(e)
             self.global_message.appendPlainText(e_str)
