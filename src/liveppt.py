@@ -213,8 +213,6 @@ class QBibleChecker(QtGui.QDialog):
         
         self.check_db_tab.setLayout(layout)
     
-    
-    
 class QUserWorshipType(QtGui.QDialog):
     def __init__(self, lppt):
         super(QUserWorshipType, self).__init__()
@@ -739,7 +737,10 @@ class QLivePPT(QtGui.QWidget):
             #MSO_ANCHOR.MIDDLE, 
             const.get_textframe_vanchortype(self.ppt_respread_slide.textbox.vanchor),
             const.get_paragraph_aligntype(self.ppt_respread_slide.textbox.pp_align),
-            0, 0, 0, 0, True)
+            self.ppt_respread_slide.textbox.left_margin  ,
+            self.ppt_respread_slide.textbox.top_margin   ,
+            self.ppt_respread_slide.textbox.right_margin ,
+            self.ppt_respread_slide.textbox.bottom_margin)
         return txt_box
             
     def set_respread_ppt_text(self, txt_frame, txt, fmt):
@@ -1086,7 +1087,10 @@ class QLivePPT(QtGui.QWidget):
                 #MSO_ANCHOR.MIDDLE, 
                 const.get_textframe_vanchortype(self.ppt_txtppt_slide.textbox.vanchor),
                 const.get_paragraph_aligntype(self.ppt_txtppt_slide.textbox.pp_align),
-                0, 0, 0, 0)
+                self.ppt_txtppt_slide.textbox.left_margin  ,
+                self.ppt_txtppt_slide.textbox.top_margin   ,
+                self.ppt_txtppt_slide.textbox.right_margin ,
+                self.ppt_txtppt_slide.textbox.bottom_margin)
 
             for l2 in in_text:
                 if l2 == '': continue
@@ -1485,7 +1489,10 @@ class QLivePPT(QtGui.QWidget):
                 self.set_textbox(txt_f, MSO_AUTO_SIZE.NONE, 
                 const.get_textframe_vanchortype(self.ppt_hymal_slide.textbox.vanchor),
                 const.get_paragraph_aligntype(self.ppt_hymal_slide.textbox.pp_align),
-                0, 0, 0, 0)
+                self.ppt_hymal_slide.textbox.left_margin  ,
+                self.ppt_hymal_slide.textbox.top_margin   ,
+                self.ppt_hymal_slide.textbox.right_margin ,
+                self.ppt_hymal_slide.textbox.bottom_margin)
 
                 chorus = False
                 for l_text in l_list:
@@ -2287,12 +2294,25 @@ class QLivePPT(QtGui.QWidget):
     # bc  : self.ppt_slide.back_col
     
     def insert_empty_slide(self, dp, slide_data, bsl, bc):
-        pbx = self.ppt_subtitle_slide.textbox
         dest_slide = self.add_empty_slide(dp, bsl, bc)
-        txt_box = self.add_textbox(dest_slide, slide_data, pbx.sx, pbx.sy, pbx.wid,	pbx.hgt)
+        tbox = slide_data.textbox
+        
+        txt_box = self.add_textbox(dest_slide, slide_data, 
+                  #slide_data.slide.sx, 
+                  #slide_data.slide.sy, 
+                  #slide_data.slide.wid,	
+                  #slide_data.slide.hgt)
+                  tbox.sx, 
+                  tbox.sy, 
+                  tbox.wid,	
+                  tbox.hgt)
+                  
         txt_f = txt_box.text_frame
         self.set_textbox(txt_f, MSO_AUTO_SIZE.NONE, MSO_ANCHOR.MIDDLE, MSO_ANCHOR.MIDDLE,
-        pbx.left_margin, pbx.top_margin, pbx.right_margin, pbx.bottom_margin)
+                  tbox.left_margin, 
+                  tbox.top_margin, 
+                  tbox.right_margin, 
+                  tbox.bottom_margin)
     
     def create_liveppt(self):
         #import copy
@@ -2427,14 +2447,6 @@ class QLivePPT(QtGui.QWidget):
             QtGui.QMessageBox.question(QtGui.QWidget(), 'Error', "{}".format(e), QtGui.QMessageBox.Yes)
             self.global_message.appendPlainText('... Fail: %s'%str(e))
             return
-        
-        #if self.ppt_subtitle_slide.textbox.fill.show: #textbox_fill.isChecked():
-        #    #ft = self.textbox_fill_type.currentIndex()
-        #    ft = self.ppt_subtitle_slide.textbox.fill.fill_type
-        #    if ft is const._TEXTBOX_GRADIENT_FILL:
-        #        self.fill_textbox(sfn, bool(ft))
-            #else:
-            #    self.fill_textbox(sfn, bool(ft))
     
         QtGui.QMessageBox.question(QtGui.QWidget(), 'Completed!', sfn, QtGui.QMessageBox.Yes)
         self.global_message.appendPlainText('Dest: %s\n%s\n... Create Subtitle PPT: success\n'%(
@@ -2447,7 +2459,6 @@ class QLivePPT(QtGui.QWidget):
                 pptx.util.Inches(wid),
                 pptx.util.Inches(hgt))
         
-        #if bkc:
         if slide_data.textbox.fill.show:
             if slide_data.textbox.fill.type == const._TEXTBOX_SOLID_FILL:
                 sc = slide_data.textbox.fill.solid_col
