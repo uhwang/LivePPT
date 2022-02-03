@@ -94,7 +94,7 @@ class QLivepptSlideDataDlg(QtGui.QDialog):
         text_layout.addWidget(self.textbox_font_col, 7, 1)
         text_layout.addWidget(self.textbox_font_col_picker, 7, 2)
     
-        text_layout.addWidget(QtGui.QLabel("Name"), 8,0)
+        text_layout.addWidget(QtGui.QLabel("Font Name"), 8,0)
         self.textbox_font_name = QtGui.QLineEdit(slide_data.textbox.font_name)
         text_layout.addWidget(self.textbox_font_name, 8, 1)
         self.textbox_font_picker = QtGui.QPushButton('', self)
@@ -103,7 +103,7 @@ class QLivepptSlideDataDlg(QtGui.QDialog):
         self.connect(self.textbox_font_picker, QtCore.SIGNAL('clicked()'), self.pick_font)
         text_layout.addWidget(self.textbox_font_picker, 8, 2)
     
-        text_layout.addWidget(QtGui.QLabel("Size"), 9,0)
+        text_layout.addWidget(QtGui.QLabel("Font Size"), 9,0)
         self.textbox_font_size = QtGui.QLineEdit("%f"%slide_data.textbox.font_size)
         text_layout.addWidget(self.textbox_font_size, 9,1)
     

@@ -1764,7 +1764,7 @@ class QLivePPT(QtGui.QWidget):
         else: # fx source
             fn = res.user_input.text()
         
-        nwt = len(_worship_type)-1
+        nwt = len(const._worship_type)-1
         self.publish_title.setEditable(True)
         self.publish_title.setItemText(nwt, fn)
         self.publish_title.setEditable(False)
@@ -2298,10 +2298,6 @@ class QLivePPT(QtGui.QWidget):
         tbox = slide_data.textbox
         
         txt_box = self.add_textbox(dest_slide, slide_data, 
-                  #slide_data.slide.sx, 
-                  #slide_data.slide.sy, 
-                  #slide_data.slide.wid,	
-                  #slide_data.slide.hgt)
                   tbox.sx, 
                   tbox.sy, 
                   tbox.wid,	
